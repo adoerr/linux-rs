@@ -21,5 +21,7 @@ macro_rules! syscall {
 }
 
 mod error;
+mod signal;
 
 pub use error::{Error, Result};
+pub use signal::{block, restore, Signal, SignalFd, SignalSet};
