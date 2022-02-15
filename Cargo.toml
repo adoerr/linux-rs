@@ -9,6 +9,8 @@ edition = "2021"
 
 [lib]
 name = "syscall"
+doctest = false
 
 [dependencies]
-
+libc = { version = "0.2", features = [ "extra_traits" ]}
+thiserror = { version = "1.0" }
