@@ -1,0 +1,14 @@
+[package]
+name = "syscall-rs"
+version = "0.0.1"
+author = [ "Andreas Doerr" ]
+description = "Support crate for Linux system programming"
+repository = "https://github.com/adoerr/syscall-rs.git"
+license = "Apache-2.0"
+edition = "2021"
+
+[lib]
+name = "syscall"
+
+[dependencies]
+
