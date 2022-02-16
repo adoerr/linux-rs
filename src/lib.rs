@@ -25,5 +25,5 @@ mod signal;
 mod wait;
 
 pub use error::{Error, Result};
-pub use signal::{block, restore, Signal, SignalFd, SignalSet};
+pub use signal::{signal_block, signal_restore, Signal, SignalFd, SignalSet};
 pub use wait::{wait, WaitStatus};

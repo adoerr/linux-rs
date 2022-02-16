@@ -339,7 +339,7 @@ impl Drop for SignalFd {
 ///
 /// Note that the process signal mask will be set to the **union** of the current
 /// process signal mask and `set`.
-pub fn block(set: SignalSet) -> Result<SignalSet> {
+pub fn signal_block(set: SignalSet) -> Result<SignalSet> {
     let mut old = SignalSet::empty()?;
 
     syscall!(sigprocmask(
@@ -355,8 +355,8 @@ pub fn block(set: SignalSet) -> Result<SignalSet> {
 /// process signal mask.
 ///
 /// Note that this will also unblock those signals which have previously been
-/// blocked by a call to [`block()`]
-pub fn restore(set: SignalSet) -> Result<SignalSet> {
+/// blocked by a call to [`signal_block()`]
+pub fn signal_restore(set: SignalSet) -> Result<SignalSet> {
     let mut old = SignalSet::empty()?;
 
     syscall!(sigprocmask(
@@ -372,7 +372,7 @@ pub fn restore(set: SignalSet) -> Result<SignalSet> {
 mod tests {
     use anyhow::Result;
 
-    use super::{block, restore, Signal, SignalFd, SignalSet};
+    use super::{signal_block, signal_restore, Signal, SignalFd, SignalSet};
 
     #[test]
     fn signal_set_add() -> Result<()> {
@@ -448,13 +448,13 @@ mod tests {
         ];
 
         // nothing has been blocked before
-        let old = block(signals.as_slice().into())?;
+        let old = signal_block(signals.as_slice().into())?;
 
         assert_eq!(old, SignalSet::empty()?);
         assert_ne!(old, SignalSet::fill()?);
 
         // return the previously blocked signal set
-        let blocked = block(old)?;
+        let blocked = signal_block(old)?;
 
         assert_eq!(blocked, signals.as_slice().into());
 
@@ -470,9 +470,9 @@ mod tests {
             Signal::SIGTERM,
         ];
 
-        let old = block(signals.as_slice().into())?;
+        let old = signal_block(signals.as_slice().into())?;
 
-        let blocked = restore(old)?;
+        let blocked = signal_restore(old)?;
 
         assert_eq!(blocked, signals.as_slice().into());
 
