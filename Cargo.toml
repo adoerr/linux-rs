@@ -20,6 +20,8 @@ thiserror = { version = "1.0" }
 
 [dev-dependencies]
 anyhow = { version = "1.0" }
+env_logger = { version = "0.9" }
+log = { version = "0.4" }
 
 [[example]]
 name = "wait_for_child"

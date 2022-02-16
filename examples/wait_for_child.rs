@@ -2,63 +2,52 @@
 // This example demonstrates how to process signals and termination status
 // from a forked child process.
 //
+// Run this example using
+//
+// RUST_LOG=info cargo run --example wait_for_child
+//
 
 use anyhow::bail;
+use log::info;
 use std::{process::exit, thread::sleep, time::Duration};
 use syscall::{signal_block, syscall, wait, Signal, SignalFd};
 
 fn main() -> anyhow::Result<()> {
+    env_logger::try_init()?;
+
     // We need to block the signals that we want to fetch using a signal fd.
     // This will prevent those signals from being handled by other means, like
     // a signal handler etc.
-    signal_block(
-        vec![
-            Signal::SIGCHLD,
-            Signal::SIGINT,
-            Signal::SIGQUIT,
-            Signal::SIGTERM,
-        ]
-        .as_slice()
-        .into(),
-    )?;
+    signal_block(vec![Signal::SIGCHLD].as_slice().into())?;
 
-    println!("about to fork child");
+    info!("about to fork child");
 
     let child = match syscall!(fork())? {
         // parent -> child pid
         pid if pid != 0 => pid,
         // child -> quick nap, then exit
         _ => {
-            println!("child is a go");
+            info!("child is a go");
 
             sleep(Duration::from_millis(20));
 
-            println!("child is about to exit");
+            info!("child is about to exit");
 
             exit(42);
         }
     };
 
-    println!("wait for child `{}`", child);
+    info!("wait for child `{}`", child);
 
-    let mut sigfd = SignalFd::new(
-        vec![
-            Signal::SIGCHLD,
-            Signal::SIGINT,
-            Signal::SIGQUIT,
-            Signal::SIGTERM,
-        ]
-        .as_slice()
-        .into(),
-    )?;
+    let mut sigfd = SignalFd::new(vec![Signal::SIGCHLD].as_slice().into())?;
 
     match sigfd.read_signal()? {
         Signal::SIGCHLD => {
-            println!("got SIGCHLD - fetch child termination status");
+            info!("got SIGCHLD - fetch child termination status");
 
             let status = wait(child)?;
 
-            println!("child termination status `{:?}`", status);
+            info!("child termination status `{:?}`", status);
         }
         sig => {
             bail!("received invalid signal `{}`", sig);
