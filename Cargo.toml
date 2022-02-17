@@ -25,4 +25,4 @@ env_logger = { version = "0.9" }
 log = { version = "0.4" }
 
 [[example]]
-name = "wait_for_child"
+name = "signal_handling"

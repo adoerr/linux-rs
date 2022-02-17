@@ -7,14 +7,19 @@ use syscall::{signal_block, syscall, wait, Signal, SignalFd, WaitStatus};
 
 #[test]
 fn wait_child() -> Result<()> {
-    // don't handle signal the usual way
+    // make sure, we do get SIGCHILD
+    syscall!(prctl(libc::PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0))?;
+
+    // don't handle SIGCHILD the usual way
     signal_block(vec![Signal::SIGCHLD].as_slice().into())?;
 
     let child = match syscall!(fork())? {
         // parent -> child pid
         pid if pid != 0 => pid,
-        // child -> exit
+        // child -> quick nap then exit
         _ => {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+
             std::process::exit(42);
         }
     };
