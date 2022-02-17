@@ -17,6 +17,7 @@ doctest = false
 [dependencies]
 libc = { version = "0.2", features = [ "extra_traits" ]}
 thiserror = { version = "1.0" }
+mio = { version = "0.8", features = [ "os-poll", "os-ext", "net" ] }
 
 [dev-dependencies]
 anyhow = { version = "1.0" }

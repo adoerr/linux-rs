@@ -2,6 +2,11 @@
 //! This file is part of syscall-rs
 //!
 
+use mio::{
+    event::{self},
+    unix::SourceFd,
+    Interest, Registry, Token,
+};
 use std::{fmt, mem, os::unix::prelude::RawFd, str::FromStr};
 
 use crate::{Error, Result};
@@ -315,6 +320,30 @@ impl SignalFd {
         let signum = siginfo.ssi_signo as libc::c_int;
 
         signum.try_into()
+    }
+}
+
+impl event::Source for SignalFd {
+    fn register(
+        &mut self,
+        registry: &Registry,
+        token: Token,
+        interests: Interest,
+    ) -> std::io::Result<()> {
+        SourceFd(&self.0).register(registry, token, interests)
+    }
+
+    fn reregister(
+        &mut self,
+        registry: &Registry,
+        token: Token,
+        interests: Interest,
+    ) -> std::io::Result<()> {
+        SourceFd(&self.0).reregister(registry, token, interests)
+    }
+
+    fn deregister(&mut self, registry: &Registry) -> std::io::Result<()> {
+        SourceFd(&self.0).deregister(registry)
     }
 }
 
