@@ -21,11 +21,13 @@ macro_rules! syscall {
 }
 
 mod error;
+mod fd;
 mod signal;
 mod stdio;
 mod wait;
 
 pub use error::{Error, Result};
+pub use fd::FileDesc;
 pub use signal::{signal_block, signal_restore, Signal, SignalFd, SignalSet};
 pub use stdio::Stdio;
 pub use wait::{wait, WaitStatus};

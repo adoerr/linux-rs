@@ -2,11 +2,11 @@
 //! This file is part of syscall-rs
 //!
 
-use std::os::unix::prelude::RawFd;
+use crate::FileDesc;
 
 pub enum Stdio {
+    Fd(FileDesc),
     Inherit,
     Null,
     Pipe,
-    Fd(RawFd),
 }
