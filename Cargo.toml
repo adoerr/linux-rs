@@ -1,6 +1,6 @@
 [package]
 name = "syscall-rs"
-version = "0.0.3"
+version = "0.0.4"
 authors = [ "Andreas Doerr" ]
 description = "Support crate for Linux system programming"
 repository = "https://github.com/adoerr/syscall-rs.git"
