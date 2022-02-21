@@ -3,12 +3,43 @@
 //!
 
 use std::{
-    fmt,
+    cmp, fmt,
     mem::forget,
     os::unix::prelude::{AsRawFd, FromRawFd, IntoRawFd, RawFd},
 };
 
+use crate::Result;
+
+/// According to the read(2) man page if the count of bytes to read is greater
+/// than `SSIZE_MAX`, the result is implementation defined.
+///
+/// On Linux read(2) will transfer at most 0x7ffff000 (2,147,479,552) bytes,
+/// returning the number of bytes acutally transferred
+const READ_LIMIT: usize = libc::ssize_t::MAX as usize;
+
 pub struct FileDesc(RawFd);
+
+impl FileDesc {
+    pub fn read(&self, buf: &mut [u8]) -> Result<usize> {
+        let res = syscall!(read(
+            self.as_raw_fd(),
+            buf.as_mut_ptr() as *mut libc::c_void,
+            cmp::min(buf.len(), READ_LIMIT)
+        ))?;
+
+        Ok(res as usize)
+    }
+
+    pub fn write(&self, buf: &[u8]) -> Result<usize> {
+        let res = syscall!(write(
+            self.as_raw_fd(),
+            buf.as_ptr() as *const libc::c_void,
+            cmp::min(buf.len(), READ_LIMIT)
+        ))?;
+
+        Ok(res as usize)
+    }
+}
 
 impl AsRawFd for FileDesc {
     fn as_raw_fd(&self) -> RawFd {
