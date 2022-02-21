@@ -3,12 +3,29 @@
 //!
 
 use std::{
-    cmp, fmt,
+    cmp, fmt, io,
     mem::forget,
     os::unix::prelude::{AsRawFd, FromRawFd, IntoRawFd, RawFd},
 };
 
-use crate::Result;
+/// IO system call wrapper.
+///
+/// Wrapper around `libc` system calls that checks `errno` on failure.
+///
+/// Note that we can't use the `syscall!()` macro here, because our file
+/// descriptor implementation has to be compatible with `std::io` traits
+/// and hence needs to return a `std::io::Result`
+macro_rules! iocall {
+    ($fn: ident ( $($arg: expr),* $(,)* ) ) => {{
+        let res = unsafe { libc::$fn($($arg, )*) };
+
+        if res == -1 {
+            Err(std::io::Error::last_os_error())
+        } else {
+            Ok(res)
+        }
+    }};
+}
 
 /// According to the read(2) man page if the count of bytes to read is greater
 /// than `SSIZE_MAX`, the result is implementation defined.
@@ -20,8 +37,8 @@ const READ_LIMIT: usize = libc::ssize_t::MAX as usize;
 pub struct FileDesc(RawFd);
 
 impl FileDesc {
-    pub fn read(&self, buf: &mut [u8]) -> Result<usize> {
-        let res = syscall!(read(
+    pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
+        let res = iocall!(read(
             self.as_raw_fd(),
             buf.as_mut_ptr() as *mut libc::c_void,
             cmp::min(buf.len(), READ_LIMIT)
@@ -30,8 +47,8 @@ impl FileDesc {
         Ok(res as usize)
     }
 
-    pub fn write(&self, buf: &[u8]) -> Result<usize> {
-        let res = syscall!(write(
+    pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
+        let res = iocall!(write(
             self.as_raw_fd(),
             buf.as_ptr() as *const libc::c_void,
             cmp::min(buf.len(), READ_LIMIT)
