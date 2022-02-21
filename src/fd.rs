@@ -3,7 +3,8 @@
 //!
 
 use std::{
-    cmp, fmt, io,
+    cmp, fmt,
+    io::{self, IoSlice, IoSliceMut},
     mem::forget,
     os::unix::prelude::{AsRawFd, FromRawFd, IntoRawFd, RawFd},
 };
@@ -34,6 +35,9 @@ macro_rules! iocall {
 /// returning the number of bytes acutally transferred
 const READ_LIMIT: usize = libc::ssize_t::MAX as usize;
 
+/// Limit for the number of buffers in the `iov` buffer array
+const IOV_LIMIT: usize = libc::UIO_MAXIOV as usize;
+
 pub struct FileDesc(RawFd);
 
 impl FileDesc {
@@ -47,11 +51,31 @@ impl FileDesc {
         Ok(res as usize)
     }
 
+    pub fn read_vectored(&self, bufs: &mut [IoSliceMut]) -> io::Result<usize> {
+        let res = iocall!(readv(
+            self.as_raw_fd(),
+            bufs.as_ptr() as *const libc::iovec,
+            cmp::min(bufs.len() as libc::c_int, IOV_LIMIT as libc::c_int)
+        ))?;
+
+        Ok(res as usize)
+    }
+
     pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
         let res = iocall!(write(
             self.as_raw_fd(),
             buf.as_ptr() as *const libc::c_void,
             cmp::min(buf.len(), READ_LIMIT)
+        ))?;
+
+        Ok(res as usize)
+    }
+
+    pub fn write_vectored(&self, bufs: &mut [IoSlice]) -> io::Result<usize> {
+        let res = iocall!(writev(
+            self.as_raw_fd(),
+            bufs.as_ptr() as *const libc::iovec,
+            cmp::min(bufs.len() as libc::c_int, IOV_LIMIT as libc::c_int)
         ))?;
 
         Ok(res as usize)
