@@ -248,6 +248,20 @@ impl SignalSet {
 
         Ok(())
     }
+
+    /// Test for `signal`
+    pub fn is_member(&self, signal: Signal) -> Result<bool> {
+        let res = syscall!(sigismember(
+            &self.0 as *const libc::sigset_t,
+            signal as libc::c_int
+        ))?;
+
+        if res == 1 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 }
 
 impl AsRef<libc::sigset_t> for SignalSet {
@@ -485,7 +499,7 @@ mod tests {
         // return the previously blocked signal set
         let blocked = signal_block(old)?;
 
-        assert_eq!(blocked, signals.as_slice().into());
+        assert!(blocked.is_member(Signal::SIGCHLD)?);
 
         Ok(())
     }
@@ -503,7 +517,7 @@ mod tests {
 
         let blocked = signal_restore(old)?;
 
-        assert_eq!(blocked, signals.as_slice().into());
+        assert!(blocked.is_member(Signal::SIGCHLD)?);
 
         Ok(())
     }

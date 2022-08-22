@@ -23,6 +23,7 @@ mio = { version = "0.8", features = [ "os-poll", "os-ext", "net" ] }
 anyhow = { version = "1.0" }
 env_logger = { version = "0.9" }
 log = { version = "0.4" }
+serial_test = { version = "0.9.0" }
 
 [[example]]
 name = "signal_handling"
