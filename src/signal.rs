@@ -2,12 +2,13 @@
 //! This file is part of syscall-rs
 //!
 
+use std::{fmt, mem, os::unix::prelude::RawFd, str::FromStr};
+
 use mio::{
     event::{self},
     unix::SourceFd,
     Interest, Registry, Token,
 };
-use std::{fmt, mem, os::unix::prelude::RawFd, str::FromStr};
 
 use crate::{Error, Result};
 

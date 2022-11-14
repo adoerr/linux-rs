@@ -2,10 +2,11 @@
 //! This file is part of syscall-rs
 //!
 
+use std::process;
+
 use anyhow::Result;
 use log::info;
 use mio::{Events, Interest, Poll, Token};
-use std::process;
 use syscall::{signal_block, Signal, SignalFd, SignalSet};
 
 const SIGNAL: Token = Token(42);
