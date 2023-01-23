@@ -1,0 +1,10 @@
+[package]
+name = "debugger"
+version = "0.1.0"
+license = "Unlicense"
+edition = "2021"
+
+[dependencies]
+anyhow = { version = "1.0.68" }
+libc = { version = "0.2.139" }
+thiserror = { version = "1.0.38" }
