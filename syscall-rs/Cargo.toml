@@ -1,0 +1,26 @@
+[package]
+name = "syscall-rs"
+version = "0.0.4"
+authors = [ "Andreas Doerr" ]
+description = "Support crate for Linux system programming"
+repository = "https://github.com/adoerr/syscall-rs.git"
+license = "Apache-2.0"
+edition = "2021"
+readme = "README.md"
+keywords = ["linux", "system", "programming"]
+categories = ["api-bindings"]
+
+[lib]
+name = "syscall"
+doctest = false
+
+[dependencies]
+libc = { version = "0.2", features = [ "extra_traits" ]}
+thiserror = { version = "1.0" }
+mio = { version = "0.8", features = [ "os-poll", "os-ext", "net" ] }
+
+[dev-dependencies]
+anyhow = { version = "1.0" }
+env_logger = { version = "0.10" }
+log = { version = "0.4" }
+serial_test = { version = "1.0.0" }
