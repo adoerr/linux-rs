@@ -5,6 +5,6 @@ license = "Unlicense"
 edition = "2021"
 
 [dependencies]
-anyhow = { version = "1.0.69" }
+anyhow = { version = "1.0.70" }
 libc = { version = "0.2.140" }
 thiserror = { version = "1.0.39" }
