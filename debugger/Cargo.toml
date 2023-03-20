@@ -7,4 +7,4 @@ edition = "2021"
 [dependencies]
 anyhow = { version = "1.0.69" }
 libc = { version = "0.2.140" }
-thiserror = { version = "1.0.39" }
+thiserror = { version = "1.0.40" }
