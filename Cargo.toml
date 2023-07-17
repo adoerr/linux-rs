@@ -3,3 +3,5 @@ members = [
     "debugger",
     "syscall-rs",
 ]
+
+resolver = "2"
