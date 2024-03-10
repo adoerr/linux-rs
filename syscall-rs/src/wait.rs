@@ -94,7 +94,7 @@ mod tests {
             assert_eq!(42, status);
         } else {
             // test failure
-            assert!(false);
+            unreachable!("wait() returned an unexpected wait status");
         }
 
         Ok(())
@@ -116,7 +116,7 @@ mod tests {
             assert_eq!(42, status);
         } else {
             // test failure
-            assert!(false);
+            unreachable!("wait() returned an unexpected wait status");
         }
 
         Ok(())
@@ -140,7 +140,7 @@ mod tests {
             assert_eq!(signal, Signal::SIGSTOP);
         } else {
             // test failure
-            assert!(false);
+            unreachable!("wait() returned an unexpected wait status");
         }
 
         Ok(())
