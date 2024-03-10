@@ -73,7 +73,7 @@ mod tests {
 
     use crate::{wait, Result, Signal, WaitStatus};
 
-    /// This test is inherently falky and **must not** run together with other
+    /// This test is inherently flaky and **must not** run together with other
     /// tests. Otherwise it will most likely fail by [`wait()`] returning the
     /// wait status from some random child process forked by another thread
     /// in some unrelated test instead of the wait status of `child`

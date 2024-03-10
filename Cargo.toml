@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "debugger",
+    "poll",
     "syscall-rs",
 ]
 
