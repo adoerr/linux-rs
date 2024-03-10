@@ -162,10 +162,10 @@ mod tests {
         if let WaitStatus::Signaled(pid, signal, core) = wait(child)? {
             assert_eq!(pid, child);
             assert_eq!(signal, Signal::SIGKILL);
-            assert_eq!(core, false);
+            assert!(!core);
         } else {
             // test failure
-            assert!(false);
+            unreachable!("wait() returned an unexpected wait status");
         }
 
         Ok(())
@@ -189,7 +189,7 @@ mod tests {
             assert_eq!(signal, Signal::SIGSTOP);
         } else {
             // test failure
-            assert!(false);
+            unreachable!("wait() returned an unexpected wait status");
         }
 
         syscall!(kill(child, Signal::SIGKILL as libc::c_int))?;
@@ -197,10 +197,10 @@ mod tests {
         if let WaitStatus::Signaled(pid, signal, core) = wait(child)? {
             assert_eq!(pid, child);
             assert_eq!(signal, Signal::SIGKILL);
-            assert_eq!(core, false);
+            assert!(!core);
         } else {
             // test failure
-            assert!(false);
+            unreachable!("wait() returned an unexpected wait status");
         }
 
         Ok(())
