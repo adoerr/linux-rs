@@ -49,3 +49,45 @@ impl Drop for Registry {
         }
     }
 }
+
+pub struct Poll {
+    registry: Registry,
+}
+
+impl Poll {
+    pub fn new() -> Result<Poll> {
+        let raw_fd = syscall!(epoll_create(1))?;
+
+        Ok(Poll {
+            registry: Registry { raw_fd },
+        })
+    }
+
+    /// Poll for events in [`Registry`].
+    ///
+    /// The method will block until either at least one event is available, or the timeout has expired.
+    ///
+    /// # Arguments
+    ///
+    /// * `events` - Available events after [`poll()`] returns.
+    /// * `timeout` - Optional timeout in milliseconds. If `None`, block indefinitely until an event occurs.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(usize)` - Number of events available.
+    /// * `Err(std::io::Error)` - IO Error while waiting.
+    pub fn poll(&self, events: &mut Events, timeout: Option<i32>) -> Result<usize> {
+        let res = syscall!(epoll_wait(
+            self.registry.raw_fd,
+            events.as_mut_ptr(),
+            events.capacity() as i32,
+            timeout.unwrap_or(-1)
+        ))?;
+
+        unsafe {
+            events.set_len(res as usize);
+        }
+
+        Ok(res as usize)
+    }
+}
