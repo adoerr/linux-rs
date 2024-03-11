@@ -1,0 +1,8 @@
+[package]
+name = "delay"
+version = "0.1.0"
+license = "Unlicense"
+edition = "2021"
+
+[dependencies]
+actix-web = {  version = "4.5.1" }

@@ -67,12 +67,12 @@ impl Poll {
     ///
     /// The method will block until either at least one event is available, or the timeout has expired.
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
-    /// * `events` - Available events after [`poll()`] returns.
+    /// * `events` - Available events after [poll()](Poll::poll) returns.
     /// * `timeout` - Optional timeout in milliseconds. If `None`, block indefinitely until an event occurs.
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// * `Ok(usize)` - Number of events available.
     /// * `Err(std::io::Error)` - IO Error while waiting.
