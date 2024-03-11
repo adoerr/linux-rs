@@ -44,6 +44,8 @@ impl Registry {
 
 impl Drop for Registry {
     fn drop(&mut self) {
-        todo!()
+        if let Err(e) = syscall!(close(self.raw_fd)) {
+            eprintln!("Error closing epoll file descriptor: {e:?}");
+        }
     }
 }
