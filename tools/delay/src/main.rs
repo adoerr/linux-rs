@@ -11,9 +11,12 @@ pub struct Request {
 
 fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:4242")?;
-    let (mut stream, _) = listener.accept()?;
-    let request = read(&mut stream)?;
-    println!("{:?}", request);
+
+    while let Ok((mut stream, _addr)) = listener.accept() {
+        let request = read(&mut stream)?;
+        println!("{:?}", request);
+    }
+
     Ok(())
 }
 
