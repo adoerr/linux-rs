@@ -1,6 +1,6 @@
 use std::{
     io::{Read, Result},
-    net::{TcpListener, TcpStream},
+    net::{SocketAddr, TcpListener, TcpStream},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -12,11 +12,17 @@ pub struct Request {
 fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:4242")?;
 
-    while let Ok((mut stream, _addr)) = listener.accept() {
-        let request = read(&mut stream)?;
-        println!("{:?}", request);
+    while let Ok((stream, addr)) = listener.accept() {
+        handle_client(stream, addr)?;
     }
 
+    Ok(())
+}
+
+fn handle_client(mut stream: TcpStream, addr: SocketAddr) -> Result<()> {
+    println!("Incoming connection from: {addr}");
+    let request = read(&mut stream)?;
+    println!("{request:?}");
     Ok(())
 }
 
