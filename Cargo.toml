@@ -3,7 +3,6 @@ members = [
     "debugger",
     "poll",
     "syscall-rs",
-    "tools/delay",
 ]
 
 resolver = "2"

@@ -5,9 +5,6 @@ use std::{
     net::TcpStream,
 };
 
-mod poll;
-mod poll_sys;
-
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Request {
     delay_ms: u64,
