@@ -10,7 +10,7 @@ use mio::{
     Interest, Registry, Token,
 };
 
-use crate::{Error, Result};
+use crate::{signal, Error, Result};
 
 /// Operating system signal.
 ///
@@ -179,7 +179,7 @@ impl TryFrom<libc::c_int> for Signal {
     /// according to the `signal(7)` man page
     fn try_from(signum: libc::c_int) -> std::result::Result<Self, Self::Error> {
         if 0 < signum && signum < 32 {
-            Ok(unsafe { mem::transmute(signum) })
+            Ok(unsafe { mem::transmute::<i32, signal::Signal>(signum) })
         } else {
             Err(Error::Syscall(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
