@@ -17,10 +17,10 @@ doctest = false
 [dependencies]
 libc = { version = "0.2.153", features = [ "extra_traits" ] }
 mio = { version = "0.8.11", features = [ "os-poll", "os-ext", "net" ] }
-thiserror = { version = "1.0.58" }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 anyhow = { version = "1.0.82" }
 env_logger = { version = "0.11.3" }
 log = { version = "0.4.21" }
-serial_test = { version = "3.0.0" }
+serial_test = { workspace = true }
