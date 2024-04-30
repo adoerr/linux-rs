@@ -15,7 +15,7 @@ name = "syscall"
 doctest = false
 
 [dependencies]
-libc = { version = "0.2.153", features = [ "extra_traits" ] }
+libc = { workspace = true, features = [ "extra_traits" ] }
 mio = { version = "0.8.11", features = [ "os-poll", "os-ext", "net" ] }
 thiserror = { workspace = true }
 
