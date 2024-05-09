@@ -20,7 +20,7 @@ mio = { version = "0.8.11", features = [ "os-poll", "os-ext", "net" ] }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-anyhow = { version = "1.0.82" }
+anyhow = { workspace = true }
 env_logger = { version = "0.11.3" }
 log = { version = "0.4.21" }
 serial_test = { workspace = true }
