@@ -5,12 +5,12 @@
 use std::{fmt, mem, os::unix::prelude::RawFd, str::FromStr};
 
 use mio::{
+    Interest, Registry, Token,
     event::{self},
     unix::SourceFd,
-    Interest, Registry, Token,
 };
 
-use crate::{signal, Error, Result};
+use crate::{Error, Result, signal};
 
 /// Operating system signal.
 ///
@@ -164,7 +164,7 @@ impl FromStr for Signal {
                 return Err(Error::Syscall(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "invalid signal",
-                )))
+                )));
             }
         })
     }
@@ -257,11 +257,7 @@ impl SignalSet {
             signal as libc::c_int
         ))?;
 
-        if res == 1 {
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+        if res == 1 { Ok(true) } else { Ok(false) }
     }
 }
 
@@ -416,7 +412,7 @@ pub fn signal_restore(set: SignalSet) -> Result<SignalSet> {
 mod tests {
     use anyhow::Result;
 
-    use super::{signal_block, signal_restore, Signal, SignalFd, SignalSet};
+    use super::{Signal, SignalFd, SignalSet, signal_block, signal_restore};
 
     #[test]
     fn signal_set_add() -> Result<()> {

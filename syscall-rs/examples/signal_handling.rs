@@ -7,7 +7,7 @@ use std::process;
 use anyhow::Result;
 use log::info;
 use mio::{Events, Interest, Poll, Token};
-use syscall::{signal_block, Signal, SignalFd, SignalSet};
+use syscall::{Signal, SignalFd, SignalSet, signal_block};
 
 const SIGNAL: Token = Token(42);
 
@@ -38,11 +38,11 @@ fn main() -> Result<()> {
                         return Ok(());
                     }
                     sig => {
-                        info!("got signal `{:?}`", sig);
+                        info!("got signal `{sig:?}`");
                     }
                 },
                 _ => {
-                    info!("unexpected event `{:?}`", evt);
+                    info!("unexpected event `{evt:?}`");
                     break;
                 }
             }

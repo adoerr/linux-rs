@@ -71,7 +71,7 @@ where
 mod tests {
     use std::process::exit;
 
-    use crate::{wait, Result, Signal, WaitStatus};
+    use crate::{Result, Signal, WaitStatus, wait};
 
     /// This test is inherently flaky and **must not** run together with other
     /// tests. Otherwise it will most likely fail by [`wait()`] returning the

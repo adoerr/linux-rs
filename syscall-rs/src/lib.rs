@@ -3,6 +3,7 @@
 //!
 
 #![deny(clippy::all)]
+#![allow(clippy::macro_metavars_in_unsafe)]
 
 /// System call wrapper.
 ///
@@ -28,6 +29,6 @@ mod wait;
 
 pub use error::{Error, Result};
 pub use fd::FileDesc;
-pub use signal::{signal_block, signal_restore, Signal, SignalFd, SignalSet};
+pub use signal::{Signal, SignalFd, SignalSet, signal_block, signal_restore};
 pub use stdio::Stdio;
-pub use wait::{wait, WaitStatus};
+pub use wait::{WaitStatus, wait};

@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, ffi::CString};
 
 use crate::{
     error::{Error, Result},
-    ptrace::{ptrace, Pid, PtraceAction},
+    ptrace::{Pid, PtraceAction, ptrace},
 };
 
 /// A Linux debugger
