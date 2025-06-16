@@ -16,11 +16,11 @@ doctest = false
 
 [dependencies]
 libc = { workspace = true, features = [ "extra_traits" ] }
-mio = { version = "0.8.11", features = [ "os-poll", "os-ext", "net" ] }
+mio = { version = "1.0.4", features = [ "os-poll", "os-ext", "net" ] }
 thiserror = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
-env_logger = { version = "0.11.3" }
-log = { version = "0.4.21" }
+env_logger = { version = "0.11.8" }
+log = { version = "0.4.27" }
 serial_test = { workspace = true }
