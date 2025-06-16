@@ -1,14 +1,6 @@
-#![allow(dead_code)]
-
-mod error;
-mod ptrace;
-
 use std::{collections::BTreeMap, ffi::CString};
 
-use crate::{
-    error::{Error, Result},
-    ptrace::{Pid, PtraceAction, ptrace},
-};
+use debugger::{Error, Pid, PtraceAction, Result, ptrace};
 
 /// A Linux debugger
 #[derive(Debug)]
@@ -71,6 +63,6 @@ impl Debugger {
 
 fn main() -> Result<()> {
     let debugger = Debugger::spawn("echo", ["Hello World"])?;
-    dbg!(debugger);
+    dbg!(debugger.tracee);
     Ok(())
 }
