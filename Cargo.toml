@@ -1,5 +1,8 @@
+
 [workspace]
 members = ["debugger", "poll", "syscall-rs"]
+
+resolver = "3"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98" }
