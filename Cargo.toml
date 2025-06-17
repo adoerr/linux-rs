@@ -1,8 +1,6 @@
 [workspace]
 members = ["debugger", "poll", "syscall-rs"]
 
-resolver = "2"
-
 [workspace.dependencies]
 anyhow = { version = "1.0.98" }
 libc = { version = "0.2.173" }

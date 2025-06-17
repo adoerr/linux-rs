@@ -11,7 +11,7 @@ struct Debugger {
 
 #[derive(Debug)]
 enum TraceeState {
-    /// We spawned a new program and we're waiting for the debugger to check
+    /// We spawned a new program, and we're waiting for the debugger to check
     /// in with an initial stop before `exec()`
     WaitForInitialStop,
 }
