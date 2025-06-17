@@ -3,7 +3,7 @@ members = ["debugger", "poll", "syscall-rs"]
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98" }
-libc = { version = "0.2.173" }
+libc = { version = "0.2.174" }
 serde = { version = "1.0.219" }
 serde_json = { version = "1.0.140" }
 thiserror = { version = "2.0.12" }
