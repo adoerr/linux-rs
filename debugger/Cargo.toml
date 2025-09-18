@@ -6,5 +6,6 @@ edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
-libc = { workspace = true }
+argh = { workspace = true }
+nix = { workspace = true, features = ["process", "ptrace"] }
 thiserror = { workspace = true }
