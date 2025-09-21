@@ -15,14 +15,14 @@ struct Args {
 #[derive(FromArgs)]
 #[argh(subcommand)]
 enum Command {
-    Binary(BinaryArgs),
-    Pid(PidArgs),
+    Run(RunArgs),
+    Attach(AttachArgs),
 }
 
-/// Run and attach to binary using the given path
+/// Run a binary using the given path
 #[derive(FromArgs)]
-#[argh(subcommand, name = "binary")]
-struct BinaryArgs {
+#[argh(subcommand, name = "run")]
+struct RunArgs {
     /// path to binary
     #[argh(positional)]
     path: PathBuf,
@@ -30,20 +30,21 @@ struct BinaryArgs {
 
 /// Attach to a running process using the given pid
 #[derive(FromArgs)]
-#[argh(subcommand, name = "pid")]
-struct PidArgs {
+#[argh(subcommand, name = "attach")]
+struct AttachArgs {
     /// pid of process to attach
     #[argh(positional)]
     pid: pid_t,
 }
+
 fn main() -> Result<()> {
     let args: Args = argh::from_env();
 
     match args.command {
-        Command::Binary(path) => {
+        Command::Run(path) => {
             println!("Attaching to binary: {:?}", path.path);
         }
-        Command::Pid(pid) => {
+        Command::Attach(pid) => {
             println!("Attaching to pid: {}", pid.pid);
         }
     }
