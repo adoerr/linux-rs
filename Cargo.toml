@@ -5,10 +5,10 @@ members = ["debugger", "poll", "syscall-rs"]
 resolver = "3"
 
 [workspace.dependencies]
-anyhow = { version = "1.0.99" }
+anyhow = { version = "1.0.100" }
 argh = { version = "0.1.13" }
 libc = { version = "0.2.174" }
 nix  = { version = "0.30.1" }
-serde = { version = "1.0.221" }
-serde_json = { version = "1.0.144" }
+serde = { version = "1.0.226" }
+serde_json = { version = "1.0.145" }
 thiserror = { version = "2.0.16" }
