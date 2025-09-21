@@ -8,30 +8,43 @@ use nix::libc::pid_t;
 /// Sulfur Debugger
 #[derive(FromArgs)]
 struct Args {
-    /// path to binary
-    #[argh(option)]
-    binary: Option<PathBuf>,
-
-    /// pid of process to attach
-    #[argh(option)]
-    pid: Option<pid_t>,
+    #[argh(subcommand)]
+    command: Command,
 }
 
+#[derive(FromArgs)]
+#[argh(subcommand)]
+enum Command {
+    Binary(BinaryArgs),
+    Pid(PidArgs),
+}
+
+/// Run and attach to binary using the given path
+#[derive(FromArgs)]
+#[argh(subcommand, name = "binary")]
+struct BinaryArgs {
+    /// path to binary
+    #[argh(positional)]
+    path: PathBuf,
+}
+
+/// Attach to a running process using the given pid
+#[derive(FromArgs)]
+#[argh(subcommand, name = "pid")]
+struct PidArgs {
+    /// pid of process to attach
+    #[argh(positional)]
+    pid: pid_t,
+}
 fn main() -> Result<()> {
     let args: Args = argh::from_env();
 
-    match (args.binary, args.pid) {
-        (Some(path), None) => {
-            println!("Binary path: {:?}", path);
-            // launch debugger with binary
+    match args.command {
+        Command::Binary(path) => {
+            println!("Attaching to binary: {:?}", path.path);
         }
-        (None, Some(pid)) => {
-            println!("PID: {}", pid);
-            // attach debugger to pid
-        }
-        _ => {
-            eprintln!("Specify either --binary <path> or --pid <pid>");
-            std::process::exit(1);
+        Command::Pid(pid) => {
+            println!("Attaching to pid: {}", pid.pid);
         }
     }
 
