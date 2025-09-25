@@ -115,10 +115,10 @@ impl Drop for FileDesc {
     fn drop(&mut self) {
         // Note that errors are ignored because retrying the close after a failure
         // is the wrong thing to do, since this may cause a reused fd from another
-        // thread to be closed and we don't acutally really know if the fd was
+        // thread to be closed, and we don't actually really know if the fd was
         // closed or not in case of a failure.
         //
-        // Also the Linux kernel always releases the fd early in the close operation,
+        // Also, the Linux kernel always releases the fd early in the close operation,
         // freeing it for reuse.
         unsafe {
             let _ = libc::close(self.0);
