@@ -6,10 +6,10 @@ use crate::error::{Error, Result};
 
 /// A Linux PID which is the thread ID of the corresponding thread.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct Pid(libc::pid_t);
+pub struct Pid(pub libc::pid_t);
 
 /// Ptrace operations (incomplete).
-pub(crate) enum Ptrace {
+pub enum Ptrace {
     /// Indicate that this process is to be traced by its parent.
     TraceMe,
 
@@ -21,7 +21,7 @@ pub(crate) enum Ptrace {
 }
 
 /// A safe wrapper around the `ptrace` syscall.
-pub(crate) fn ptrace(op: Ptrace) -> Result<()> {
+pub fn ptrace(op: Ptrace) -> Result<()> {
     let res = match op {
         Ptrace::TraceMe => unsafe { libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0) },
         Ptrace::Attach { pid } => unsafe { libc::ptrace(libc::PTRACE_ATTACH, pid.0, 0, 0) },
@@ -36,7 +36,7 @@ pub(crate) fn ptrace(op: Ptrace) -> Result<()> {
 
 /// Status codes from `waitpid`
 #[derive(Debug)]
-pub(crate) enum Status {
+pub enum Status {
     /// Process terminated normally
     Exited {
         /// Least significant 8-bits of the argument to `exit`
@@ -66,7 +66,7 @@ pub(crate) enum Status {
 }
 
 /// A safe wrapper around the `waitpid` syscall.
-pub(crate) fn waitpid(pid: Pid) -> Result<Option<Status>> {
+pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
     // check the status on `pid`, non-blocking
     let mut status = 0;
 
