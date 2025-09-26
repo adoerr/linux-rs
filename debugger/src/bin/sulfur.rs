@@ -62,5 +62,9 @@ fn main() -> Result<()> {
 
     dbg!(child == pid);
 
+    // check is status is `SIGSTOP`
+    let signal = unsafe { (*siginfo.as_ptr()).si_signo };
+    dbg!(signal == libc::SIGCHLD);
+
     Ok(())
 }
