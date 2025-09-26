@@ -70,7 +70,7 @@ pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
     // check the status on `pid`, non-blocking
     let mut status = 0;
 
-    let ret = unsafe { libc::waitpid(pid.0, &mut status, libc::WNOHANG | libc::WCONTINUED) };
+    let ret = unsafe { libc::waitpid(pid.0, &mut status, 0) };
 
     // check return value
     if ret == 0 {
