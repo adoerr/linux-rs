@@ -1,5 +1,4 @@
 // main function for the sulfur debugger
-use std::path::PathBuf;
 
 use debugger::Result;
 
@@ -12,8 +11,9 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    let program = PathBuf::from(&args[1]);
-    dbg!(program.clone());
+    // Convert to CString
+    let prog = std::ffi::CString::new(args[1].clone())?;
+    dbg!(&prog);
 
     Ok(())
 }
