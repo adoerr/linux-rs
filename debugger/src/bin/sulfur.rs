@@ -1,6 +1,7 @@
 // main function for the sulfur debugger
 
 use debugger::{Error, Pid, Ptrace, Result, ptrace, waitpid};
+use rustyline::DefaultEditor;
 
 fn main() -> Result<()> {
     // get program argument as a path
@@ -41,6 +42,32 @@ fn main() -> Result<()> {
     // wait for child to stop
     let status = waitpid(child)?;
     dbg!(status);
+
+    let mut editor = DefaultEditor::new()?;
+
+    loop {
+        let input = editor.readline("sulfur> ")?;
+        editor.add_history_entry(input.as_str())?;
+
+        let parts: Vec<&str> = input.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+
+        match parts[0] {
+            "continue" | "c" => {
+                ptrace(debugger::Ptrace::Cont { pid: child })?;
+                let status = waitpid(child)?;
+                dbg!(status);
+            }
+            "quit" | "q" => {
+                break;
+            }
+            cmd => {
+                eprintln!("Unknown command: {}", cmd);
+            }
+        }
+    }
 
     Ok(())
 }

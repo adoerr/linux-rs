@@ -10,6 +10,10 @@ pub enum Error {
     #[error("Nul byte error: {0}")]
     Nul(#[from] std::ffi::NulError),
 
+    /// Readline error
+    #[error("Readline error: {0}")]
+    Readline(#[from] rustyline::error::ReadlineError),
+
     /// Other error
     #[error(transparent)]
     Other(#[from] anyhow::Error),

@@ -18,6 +18,12 @@ pub enum Ptrace {
         /// PID of the process to attach to.
         pid: Pid,
     },
+
+    /// Continue the execution of a stopped process.
+    Cont {
+        /// PID of the process to continue.
+        pid: Pid,
+    },
 }
 
 /// A safe wrapper around the `ptrace` syscall.
@@ -25,6 +31,7 @@ pub fn ptrace(op: Ptrace) -> Result<()> {
     let res = match op {
         Ptrace::TraceMe => unsafe { libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0) },
         Ptrace::Attach { pid } => unsafe { libc::ptrace(libc::PTRACE_ATTACH, pid.0, 0, 0) },
+        Ptrace::Cont { pid } => unsafe { libc::ptrace(libc::PTRACE_CONT, pid.0, 0, 0) },
     };
 
     if res == -1 {
