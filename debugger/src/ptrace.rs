@@ -107,12 +107,10 @@ pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
                 },
                 WaitStatus::Continued(_pid) => Status::Continued,
                 WaitStatus::StillAlive => return Ok(None), // Shouldn't happen with blocking wait
-                #[cfg(any(target_os = "android", target_os = "linux"))]
                 WaitStatus::PtraceEvent(_pid, signal, event) => Status::Stopped {
                     signal: signal as i32,
                     status: event as i32,
                 },
-                #[cfg(any(target_os = "android", target_os = "linux"))]  
                 WaitStatus::PtraceSyscall(_pid) => Status::Stopped {
                     signal: 0,
                     status: 0,
