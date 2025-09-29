@@ -37,7 +37,7 @@ fn main() -> Result<()> {
     }
 
     // parent process
-    let child = Pid(pid);
+    let child = Pid::from_raw(pid);
 
     // wait for child to stop
     let status = waitpid(child)?;

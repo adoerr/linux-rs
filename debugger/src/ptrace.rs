@@ -6,7 +6,20 @@ use crate::error::{Error, Result};
 
 /// A Linux PID which is the thread ID of the corresponding thread.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Pid(pub libc::pid_t);
+pub struct Pid(pub nix::unistd::Pid);
+
+impl Pid {
+    /// Create a Pid from a raw pid_t value
+    pub fn from_raw(pid: libc::pid_t) -> Self {
+        Self(nix::unistd::Pid::from_raw(pid))
+    }
+}
+
+impl From<libc::pid_t> for Pid {
+    fn from(pid: libc::pid_t) -> Self {
+        Self::from_raw(pid)
+    }
+}
 
 /// Ptrace operations (incomplete).
 pub enum Ptrace {
@@ -28,17 +41,16 @@ pub enum Ptrace {
 
 /// A safe wrapper around the `ptrace` syscall.
 pub fn ptrace(op: Ptrace) -> Result<()> {
-    let res = match op {
-        Ptrace::TraceMe => unsafe { libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0) },
-        Ptrace::Attach { pid } => unsafe { libc::ptrace(libc::PTRACE_ATTACH, pid.0, 0, 0) },
-        Ptrace::Cont { pid } => unsafe { libc::ptrace(libc::PTRACE_CONT, pid.0, 0, 0) },
+    use nix::sys::ptrace;
+    use nix::sys::signal::Signal;
+    
+    let result = match op {
+        Ptrace::TraceMe => ptrace::traceme(),
+        Ptrace::Attach { pid } => ptrace::attach(pid.0),
+        Ptrace::Cont { pid } => ptrace::cont(pid.0, None), // None means no signal to deliver
     };
 
-    if res == -1 {
-        return Err(Error::IO(std::io::Error::last_os_error()));
-    }
-
-    Ok(())
+    result.map_err(|e| Error::IO(std::io::Error::from(e)))
 }
 
 /// Status codes from `waitpid`
@@ -74,36 +86,38 @@ pub enum Status {
 
 /// A safe wrapper around the `waitpid` syscall.
 pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
-    // check the status on `pid`, non-blocking
-    let mut status = 0;
-
-    let ret = unsafe { libc::waitpid(pid.0, &mut status, 0) };
-
-    // check return value
-    if ret == 0 {
-        // No status
-        return Ok(None);
-    } else if ret == -1 {
-        // Error
-        return Err(Error::IO(std::io::Error::last_os_error()));
+    use nix::sys::wait::{self, WaitStatus};
+    
+    // Call waitpid without WNOHANG to make it blocking (like the original with flags=0)
+    let wait_result = wait::waitpid(pid.0, None);
+    
+    match wait_result {
+        Ok(wait_status) => {
+            let status = match wait_status {
+                WaitStatus::Exited(_pid, exit_code) => Status::Exited {
+                    status: exit_code,
+                },
+                WaitStatus::Signaled(_pid, signal, core_dumped) => Status::Signaled {
+                    signal: signal as i32,
+                    dumped: core_dumped,
+                },
+                WaitStatus::Stopped(_pid, signal) => Status::Stopped {
+                    signal: signal as i32,
+                    status: signal as i32, // TODO: Replace signal as status with actual status code from waitpid when available. See documentation for intended behavior.
+                },
+                WaitStatus::Continued(_pid) => Status::Continued,
+                WaitStatus::StillAlive => return Ok(None), // Shouldn't happen with blocking wait
+                WaitStatus::PtraceEvent(_pid, signal, event) => Status::Stopped {
+                    signal: signal as i32,
+                    status: event as i32,
+                },
+                WaitStatus::PtraceSyscall(_pid) => Status::Stopped {
+                    signal: 0,
+                    status: 0,
+                },
+            };
+            Ok(Some(status))
+        }
+        Err(e) => Err(Error::IO(std::io::Error::from(e))),
     }
-
-    // convert status
-    let status = match () {
-        _ if libc::WIFEXITED(status) => Status::Exited {
-            status: libc::WEXITSTATUS(status),
-        },
-        _ if libc::WIFSIGNALED(status) => Status::Signaled {
-            signal: libc::WTERMSIG(status),
-            dumped: libc::WCOREDUMP(status),
-        },
-        _ if libc::WIFSTOPPED(status) => Status::Stopped {
-            signal: libc::WSTOPSIG(status),
-            status,
-        },
-        _ if libc::WIFCONTINUED(status) => Status::Continued,
-        _ => unreachable!("Unknown waitpid() status"),
-    };
-
-    Ok(Some(status))
 }
