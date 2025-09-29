@@ -103,7 +103,7 @@ pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
                 },
                 WaitStatus::Stopped(_pid, signal) => Status::Stopped {
                     signal: signal as i32,
-                    status: signal as i32, // Use signal as status for now
+                    status: signal as i32, // TODO: Replace signal as status with actual status code from waitpid when available. See documentation for intended behavior.
                 },
                 WaitStatus::Continued(_pid) => Status::Continued,
                 WaitStatus::StillAlive => return Ok(None), // Shouldn't happen with blocking wait
