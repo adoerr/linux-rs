@@ -5,7 +5,7 @@ fn test_pid_creation() {
     // Test Pid creation from raw pid_t
     let pid = Pid::from_raw(123);
     assert_eq!(pid.0.as_raw(), 123);
-    
+
     // Test From trait
     let pid2: Pid = 456i32.into();
     assert_eq!(pid2.0.as_raw(), 456);
@@ -18,7 +18,7 @@ fn test_ptrace_operations() {
     let pid = Pid::from_raw(123);
     let _attach = Ptrace::Attach { pid };
     let _cont = Ptrace::Cont { pid };
-    
+
     // We can't actually call ptrace without proper process setup,
     // but we can verify the enum variants work
 }
@@ -27,7 +27,13 @@ fn test_ptrace_operations() {
 fn test_status_variants() {
     // Test that Status enum variants can be created
     let _exited = Status::Exited { status: 0 };
-    let _signaled = Status::Signaled { signal: 9, dumped: false };
-    let _stopped = Status::Stopped { signal: 19, status: 19 };
+    let _signaled = Status::Signaled {
+        signal: 9,
+        dumped: false,
+    };
+    let _stopped = Status::Stopped {
+        signal: 19,
+        status: 19,
+    };
     let _continued = Status::Continued;
 }

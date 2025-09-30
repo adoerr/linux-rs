@@ -41,9 +41,8 @@ pub enum Ptrace {
 
 /// A safe wrapper around the `ptrace` syscall.
 pub fn ptrace(op: Ptrace) -> Result<()> {
-    use nix::sys::ptrace;
-    use nix::sys::signal::Signal;
-    
+    use nix::sys::{ptrace, signal::Signal};
+
     let result = match op {
         Ptrace::TraceMe => ptrace::traceme(),
         Ptrace::Attach { pid } => ptrace::attach(pid.0),
@@ -87,16 +86,14 @@ pub enum Status {
 /// A safe wrapper around the `waitpid` syscall.
 pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
     use nix::sys::wait::{self, WaitStatus};
-    
+
     // Call waitpid without WNOHANG to make it blocking (like the original with flags=0)
     let wait_result = wait::waitpid(pid.0, None);
-    
+
     match wait_result {
         Ok(wait_status) => {
             let status = match wait_status {
-                WaitStatus::Exited(_pid, exit_code) => Status::Exited {
-                    status: exit_code,
-                },
+                WaitStatus::Exited(_pid, exit_code) => Status::Exited { status: exit_code },
                 WaitStatus::Signaled(_pid, signal, core_dumped) => Status::Signaled {
                     signal: signal as i32,
                     dumped: core_dumped,
@@ -109,7 +106,7 @@ pub fn waitpid(pid: Pid) -> Result<Option<Status>> {
                 WaitStatus::StillAlive => return Ok(None), // Shouldn't happen with blocking wait
                 WaitStatus::PtraceEvent(_pid, signal, event) => Status::Stopped {
                     signal: signal as i32,
-                    status: event as i32,
+                    status: event,
                 },
                 WaitStatus::PtraceSyscall(_pid) => Status::Stopped {
                     signal: 0,
