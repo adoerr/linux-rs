@@ -13,6 +13,15 @@ fn main() {
                 i.name,
                 i.ssid.unwrap_or_else(|| "n/a".to_string())
             );
+
+            let stations = socket.list_stations(i.interface_index).unwrap();
+            for s in stations {
+                println!(
+                    "    Station: {}, Signal: {} dBm",
+                    s.mac,
+                    s.signal.unwrap_or(0)
+                );
+            }
         }
     }
 }
