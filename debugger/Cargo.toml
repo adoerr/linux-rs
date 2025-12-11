@@ -8,5 +8,5 @@ edition = "2024"
 anyhow = { workspace = true }
 libc = { workspace = true }
 nix = { workspace = true, features = ["process", "signal", "ptrace"] }
-rustyline = { version = "17.0.1", features = ["with-file-history"], default-features = false }
+rustyline = { version = "17.0.2", features = ["with-file-history"], default-features = false }
 thiserror = { workspace = true }

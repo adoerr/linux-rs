@@ -7,7 +7,7 @@ resolver = "3"
 [workspace.dependencies]
 anyhow = { version = "1.0.100" }
 argh = { version = "0.1.13" }
-libc = { version = "0.2.176" }
+libc = { version = "0.2.178" }
 nix = { version = "0.30.1" }
 serde = { version = "1.0.228" }
 serde_json = { version = "1.0.145" }
