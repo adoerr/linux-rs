@@ -1,0 +1,8 @@
+[package]
+name = "wifi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+netlink_wi = {  version = "0.8.0" }
+env_logger = { workspace = true }
