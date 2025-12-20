@@ -23,6 +23,7 @@ macro_rules! syscall {
 
 mod error;
 mod fd;
+mod macros;
 mod signal;
 mod stdio;
 mod wait;
