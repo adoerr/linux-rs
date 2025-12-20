@@ -2,16 +2,19 @@
 
 #![allow(unused, dead_code)]
 
+use libc::pid_t;
+use syscall::{WaitStatus, wait};
+
 use crate::error::{Error, Result};
 
 /// A Linux PID which is the thread ID of the corresponding thread.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Pid(pub nix::unistd::Pid);
+pub struct Pid(pub pid_t);
 
 impl Pid {
     /// Create a Pid from a raw pid_t value
     pub fn from_raw(pid: libc::pid_t) -> Self {
-        Self(nix::unistd::Pid::from_raw(pid))
+        Self(pid)
     }
 }
 

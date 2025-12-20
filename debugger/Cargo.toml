@@ -9,3 +9,5 @@ anyhow = { workspace = true }
 libc = { workspace = true }
 rustyline = { version = "17.0.2", features = ["with-file-history"], default-features = false }
 thiserror = { workspace = true }
+
+syscall-rs = { path = "../syscall-rs" }
