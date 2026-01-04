@@ -9,7 +9,7 @@
 
 use std::{
     collections::HashMap,
-    io::{Read, Result},
+    io::{Read, Result, Write},
     net::{TcpListener, TcpStream},
 };
 
@@ -82,7 +82,15 @@ fn main() -> Result<()> {
 /// Reads data from the stream, deserializes it, and prints the request.
 fn handle_client(stream: &mut TcpStream) -> Result<()> {
     let request = read(stream)?;
-    println!("{request:?}");
+    println!("Received: {request:?}");
+    if request.message == "Ping" {
+        let response = Request {
+            delay_ms: 0,
+            message: "Pong".to_string(),
+        };
+        let bytes = serde_json::to_vec(&response)?;
+        stream.write_all(&bytes)?;
+    }
     Ok(())
 }
 
