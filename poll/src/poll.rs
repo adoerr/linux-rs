@@ -8,6 +8,7 @@ use crate::poll_sys;
 #[macro_export]
 macro_rules! syscall {
     ($fn: ident ( $($arg: expr),* $(,)* ) ) => {{
+        #[allow(clippy::macro_metavars_in_unsafe)]
         let res = unsafe { poll_sys::$fn($($arg, )*) };
 
         if res == -1 {
