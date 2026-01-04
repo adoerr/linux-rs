@@ -26,7 +26,7 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub fn register(&self, source: &TcpStream, token: usize, interest: i32) -> Result<()> {
+    pub fn register(&self, source: &impl AsRawFd, token: usize, interest: i32) -> Result<()> {
         let mut event = poll_sys::Event {
             events: interest as u32,
             epoll_data: token,
@@ -52,7 +52,7 @@ impl Drop for Registry {
 }
 
 pub struct Poll {
-    registry: Registry,
+    pub registry: Registry,
 }
 
 impl Poll {
