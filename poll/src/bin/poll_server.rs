@@ -82,7 +82,8 @@ fn main() -> Result<()> {
 /// Reads data from the stream, deserializes it, and prints the request.
 fn handle_client(stream: &mut TcpStream) -> Result<()> {
     let request = read(stream)?;
-    println!("Received: {request:?}");
+    let addr = stream.peer_addr()?;
+    println!("Received from {addr}: {request:?}");
     if request.message == "Ping" {
         let response = Request {
             delay_ms: 0,
