@@ -1,6 +1,6 @@
 
 [workspace]
-members = ["netlink","poll", "syscall-rs", "wifi"]
+members = ["netlink","poll", "syscall-rs"]
 exclude = ["debugger"]
 
 resolver = "3"
