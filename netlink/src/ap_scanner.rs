@@ -10,7 +10,7 @@ use neli::{
     genl::{AttrTypeBuilder, Genlmsghdr, GenlmsghdrBuilder, NlattrBuilder},
     nl::{NlPayload, NlmsghdrBuilder},
     socket::synchronous::NlSocketHandle,
-    types::GenlBuffer,
+    types::{Buffer, GenlBuffer},
     utils::Groups,
 };
 use neli_proc_macros::neli_enum;
@@ -19,6 +19,7 @@ use neli_proc_macros::neli_enum;
 pub enum Nl80211Command {
     Unspec = 0,
     GetWiphy = 1,
+    GetInterface = 5,
     GetScan = 32,
     TriggerScan = 33,
     NewScanResults = 34,
@@ -34,6 +35,7 @@ pub enum Nl80211Attr {
     WiphyName = 2,
     Ifindex = 3,
     Ifname = 4,
+    Mac = 6,
     Bss = 47,
 }
 
@@ -66,6 +68,14 @@ pub struct AccessPoint {
     pub seen_ms_ago: Option<u32>,
 }
 
+#[derive(Debug, Default)]
+pub struct WifiInterface {
+    pub index: Option<u32>,
+    pub name: Option<String>,
+    pub mac: Option<[u8; 6]>,
+    pub phy: Option<u32>,
+}
+
 impl AccessPoint {
     pub fn signal_dbm(&self) -> Option<f64> {
         self.signal_mbm.map(|mbm| mbm as f64 / 100.0)
@@ -89,6 +99,64 @@ impl ApScanner {
         self.trigger_scan(if_index)?;
         std::thread::sleep(std::time::Duration::from_secs(2));
         self.get_scan_results(if_index)
+    }
+
+    pub fn get_interfaces(&mut self) -> Result<Vec<WifiInterface>, Box<dyn Error>> {
+        let genlhdr = GenlmsghdrBuilder::default()
+            .cmd(Nl80211Command::GetInterface)
+            .version(1)
+            .attrs(GenlBuffer::<Nl80211Attr, Buffer>::new())
+            .build()?;
+
+        let nlhdr = NlmsghdrBuilder::default()
+            .nl_type(self.family_id)
+            .nl_flags(NlmF::REQUEST | NlmF::DUMP)
+            .nl_payload(NlPayload::Payload(genlhdr))
+            .build()?;
+
+        self.socket.send(&nlhdr)?;
+
+        let mut interfaces = Vec::new();
+        loop {
+            let (iter, _) = self.socket.recv::<u16, Genlmsghdr<u8, u16>>()?;
+            for msg in iter {
+                let msg = msg?;
+                if *msg.nl_type() == u16::from(Nlmsg::Done) {
+                    return Ok(interfaces);
+                }
+                if let NlPayload::Payload(genlmsg) = msg.nl_payload() {
+                    let mut interface = WifiInterface::default();
+                    for attr in genlmsg.attrs().iter() {
+                        let attr_type = attr.nla_type().nla_type();
+                        if *attr_type == u16::from(Nl80211Attr::Ifindex) {
+                            interface.index =
+                                Some(u32::from_ne_bytes(attr.nla_payload().as_ref().try_into()?));
+                        } else if *attr_type == u16::from(Nl80211Attr::Ifname) {
+                            let bytes = attr.nla_payload().as_ref();
+                            let bytes = if bytes.last() == Some(&0) {
+                                &bytes[..bytes.len() - 1]
+                            } else {
+                                bytes
+                            };
+                            interface.name = Some(String::from_utf8(bytes.to_vec())?);
+                        } else if *attr_type == u16::from(Nl80211Attr::Mac) {
+                            let mut mac = [0u8; 6];
+                            let payload = attr.nla_payload().as_ref();
+                            if payload.len() == 6 {
+                                mac.copy_from_slice(payload);
+                                interface.mac = Some(mac);
+                            }
+                        } else if *attr_type == u16::from(Nl80211Attr::Wiphy) {
+                            interface.phy =
+                                Some(u32::from_ne_bytes(attr.nla_payload().as_ref().try_into()?));
+                        }
+                    }
+                    if interface.index.is_some() {
+                        interfaces.push(interface);
+                    }
+                }
+            }
+        }
     }
 
     fn trigger_scan(&mut self, if_index: u32) -> Result<(), Box<dyn Error>> {
