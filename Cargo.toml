@@ -15,5 +15,4 @@ serde_json = { version = "1.0.149" }
 thiserror = { version = "2.0.17" }
 log = { version = "0.4.29" }
 env_logger = { version = "0.11.8" }
-neli = { version = "0.7.3" }
-neli-proc-macros = { version = "0.2.2" }
+
