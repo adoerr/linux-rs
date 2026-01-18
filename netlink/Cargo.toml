@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-libc = {workspace = true}
+libc = { workspace = true }
+wl-nl80211 = { workspace = true }
+futures = "0.3.31"
+tokio = "1.49.0"
