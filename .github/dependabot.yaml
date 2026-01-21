@@ -1,11 +1,49 @@
 # Please see the documentation for all configuration options:
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-- package-ecosystem: cargo
-  directory: "/"
-  schedule:
-    interval: daily
-    timezone: "Europe/Berlin"
-  open-pull-requests-limit: 10
+  # Cargo dependencies for the Rust workspace
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    # Group all Cargo dependencies into a single PR
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Commit message configuration
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "rust"
+    # Allow both direct and indirect dependencies
+    allow:
+      - dependency-type: "all"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    # Commit message configuration
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "github-actions"
