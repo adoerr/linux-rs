@@ -1,6 +1,7 @@
-use std::ptr;
+use std::{mem, ptr};
 
 fn main() {
+    #[cfg(target_arch = "x86_64")]
     let code: &[u8] = &[
         0x90, // NOP
         0x90, // NOP
@@ -8,13 +9,24 @@ fn main() {
         0xc3, // RET
     ];
 
+    #[cfg(target_arch = "aarch64")]
+    let code: &[u8] = &[
+        0x1f, 0x20, 0x03, 0xd5, // NOP
+        0x1f, 0x20, 0x03, 0xd5, // NOP
+        0x1f, 0x20, 0x03, 0xd5, // NOP
+        0xc0, 0x03, 0x5f, 0xd6, // RET
+    ];
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    compile_error!("Unsupported architecture");
+
     // 1. get the system page size (usually 4096 bytes)
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGE_SIZE) } as usize;
 
     let ptr = unsafe {
         // 2. allocate memory using mmap
         libc::mmap(
-            std::ptr::null_mut(),
+            ptr::null_mut(),
             page_size,
             // memory has READ, WRITE and EXEC permissions
             libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
@@ -51,7 +63,7 @@ fn main() {
     println!("Memory protection changed to READ | EXEC. Executing shellcode...");
 
     // 5. cast memory pointer to a function
-    let func: extern "C" fn() = unsafe { std::mem::transmute(ptr) };
+    let func: extern "C" fn() = unsafe { mem::transmute(ptr) };
 
     // 6. call the shellcode function
     func();
