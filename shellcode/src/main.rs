@@ -20,6 +20,8 @@ fn main() {
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     compile_error!("Unsupported architecture");
 
+    env_logger::init();
+
     // 1. get the system page size (usually 4096 bytes)
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGE_SIZE) } as usize;
 
@@ -41,14 +43,14 @@ fn main() {
         panic!("mmap failed");
     }
 
-    println!("Memory allocated at: {:p}", ptr);
+    log::info!("Memory allocated at: {:p}", ptr);
 
     unsafe {
         // 3. copy shellcode into the allocated memory
         ptr::copy_nonoverlapping(code.as_ptr(), ptr as *mut u8, code.len());
     }
 
-    println!("Shellcode copied to allocated memory.");
+    log::info!("Shellcode copied to allocated memory.");
 
     // 4. change memory protection to READ | EXEC
     let res = unsafe { libc::mprotect(ptr, page_size, libc::PROT_READ | libc::PROT_EXEC) };
@@ -60,7 +62,7 @@ fn main() {
         panic!("mprotect failed");
     }
 
-    println!("Memory protection changed to READ | EXEC. Executing shellcode...");
+    log::info!("Memory protection changed to READ | EXEC. Executing shellcode...");
 
     // 5. cast memory pointer to a function
     let func: extern "C" fn() = unsafe { mem::transmute(ptr) };
@@ -68,7 +70,7 @@ fn main() {
     // 6. call the shellcode function
     func();
 
-    println!("Controlled execution returned here.");
+    log::info!("Controlled execution returned here.");
 
     unsafe {
         // 7. clean up: unmap the allocated memory

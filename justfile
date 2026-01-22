@@ -37,4 +37,4 @@
 # Obfuscated release build
 @obfuscate:
     echo "{{BLUE}}Building linux-rs in obfuscated release mode...{{NORMAL}}"
-    cargo build --profile obfuscate
+    cargo build --profile obfuscate --features obfuscate

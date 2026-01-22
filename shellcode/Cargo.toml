@@ -5,3 +5,9 @@ edition = "2024"
 
 [dependencies]
 libc = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+
+[features]
+# remove log statements for obfuscated builds
+obfuscate = ["log/max_level_off"]
