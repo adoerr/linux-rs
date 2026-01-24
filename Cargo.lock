@@ -508,6 +508,7 @@ name = "syscall-rs"
 version = "0.0.4"
 dependencies = [
  "anyhow",
+ "bitflags",
  "env_logger",
  "libc",
  "log",

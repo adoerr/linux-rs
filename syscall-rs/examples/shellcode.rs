@@ -2,9 +2,9 @@
 //! This file is part of syscall-rs
 //!
 
-use std::{mem, ptr};
+use std::{mem, num::NonZeroUsize, ptr};
 
-use syscall::{Result, syscall};
+use syscall::{MapFlags, ProtFlags, Result, mmap_anonymous, mprotect, syscall};
 
 fn main() -> Result<()> {
     #[cfg(target_arch = "x86_64")]
@@ -29,41 +29,35 @@ fn main() -> Result<()> {
     env_logger::init();
 
     // 1. get the system page size (usually 4096 bytes)
-    let page_size = syscall!(sysconf(libc::_SC_PAGE_SIZE))? as usize;
+    let page_size =
+        unsafe { NonZeroUsize::new_unchecked(syscall!(sysconf(libc::_SC_PAGE_SIZE))? as usize) };
 
-    let ptr = unsafe {
-        // 2. allocate memory using mmap
-        libc::mmap(
-            ptr::null_mut(),
-            page_size,
-            // memory has READ, WRITE and EXEC permissions
-            libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC,
-            // memory is not backed by any file and private to the current process
-            libc::MAP_ANONYMOUS | libc::MAP_PRIVATE,
-            -1,
-            0,
-        )
-    };
-
-    if ptr == libc::MAP_FAILED {
-        panic!("mmap failed");
-    }
+    let ptr = mmap_anonymous(
+        None,
+        page_size,
+        ProtFlags::PROT_READ | ProtFlags::PROT_WRITE | ProtFlags::PROT_EXEC,
+        MapFlags::MAP_PRIVATE,
+    )?;
 
     log::info!("Memory allocated at: {:p}", ptr);
 
     unsafe {
         // 3. copy shellcode into the allocated memory
-        ptr::copy_nonoverlapping(code.as_ptr(), ptr as *mut u8, code.len());
+        ptr::copy_nonoverlapping(code.as_ptr(), ptr.as_ptr() as *mut u8, code.len());
     }
 
     log::info!("Shellcode copied to allocated memory.");
 
     // 4. change memory protection to READ | EXEC
-    let res = unsafe { libc::mprotect(ptr, page_size, libc::PROT_READ | libc::PROT_EXEC) };
+    let res = mprotect(
+        ptr,
+        page_size.get(),
+        ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
+    );
 
-    if res != 0 {
+    if res.is_err() {
         unsafe {
-            libc::munmap(ptr, page_size);
+            libc::munmap(ptr.as_ptr(), page_size.get());
         }
         panic!("mprotect failed");
     }
@@ -80,7 +74,7 @@ fn main() -> Result<()> {
 
     unsafe {
         // 7. clean up: unmap the allocated memory
-        libc::munmap(ptr, page_size);
+        libc::munmap(ptr.as_ptr(), page_size.get());
     }
 
     Ok(())

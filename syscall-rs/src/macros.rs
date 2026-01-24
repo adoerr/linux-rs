@@ -41,6 +41,7 @@
 /// }
 /// ```
 #[allow(unused_macros)]
+#[macro_export]
 macro_rules! libc_bitflags {
     (
         $(#[$outer:meta])*
@@ -88,6 +89,7 @@ macro_rules! libc_bitflags {
 // Some targets don't use all rules.
 #[allow(unused_macro_rules)]
 #[allow(unused_macros)]
+#[macro_export]
 macro_rules! libc_enum {
     // Exit rule.
     (@make_enum

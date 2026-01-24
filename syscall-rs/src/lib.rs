@@ -24,12 +24,14 @@ macro_rules! syscall {
 mod error;
 mod fd;
 mod macros;
+mod memory;
 mod signal;
 mod stdio;
 mod wait;
 
 pub use error::{Error, Result};
 pub use fd::FileDesc;
+pub use memory::{MapFlags, ProtFlags, mmap_anonymous, mprotect};
 pub use signal::{Signal, SignalFd, SignalSet, signal_block, signal_restore};
 pub use stdio::Stdio;
 pub use wait::{WaitStatus, wait};
