@@ -1,6 +1,10 @@
+//!
+//! This file is part of syscall-rs
+//!
+
 use std::{mem, ptr};
 
-use agent::{Result, syscall};
+use syscall::{syscall, Result};
 
 fn main() -> Result<()> {
     #[cfg(target_arch = "x86_64")]

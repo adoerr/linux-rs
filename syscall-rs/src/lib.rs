@@ -3,7 +3,6 @@
 //!
 
 #![deny(clippy::all)]
-#![allow(clippy::macro_metavars_in_unsafe)]
 
 /// System call wrapper.
 ///
@@ -11,6 +10,7 @@
 #[macro_export]
 macro_rules! syscall {
     ($fn: ident ( $($arg: expr),* $(,)* ) ) => {{
+        #[allow(clippy::macro_metavars_in_unsafe)]
         let res = unsafe { libc::$fn($($arg, )*) };
 
         if res == -1 {
