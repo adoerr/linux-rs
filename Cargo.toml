@@ -1,6 +1,6 @@
 
 [workspace]
-members = ["agent", "bluetooth", "netlink", "poll", "syscall-rs"]
+members = ["bluetooth", "netlink", "poll", "syscall-rs"]
 exclude = ["debugger"]
 
 resolver = "3"

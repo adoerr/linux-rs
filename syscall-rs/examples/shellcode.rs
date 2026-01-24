@@ -4,7 +4,7 @@
 
 use std::{mem, ptr};
 
-use syscall::{syscall, Result};
+use syscall::{Result, syscall};
 
 fn main() -> Result<()> {
     #[cfg(target_arch = "x86_64")]
