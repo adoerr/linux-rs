@@ -4,7 +4,7 @@
 
 use std::{mem, num::NonZeroUsize, ptr};
 
-use syscall::{MapFlags, ProtFlags, Result, mmap_anonymous, mprotect, syscall};
+use syscall::{MapFlags, ProtFlags, Result, mmap_anonymous, mprotect, munmap, syscall};
 
 fn main() -> Result<()> {
     #[cfg(target_arch = "x86_64")]
@@ -49,18 +49,11 @@ fn main() -> Result<()> {
     log::info!("Shellcode copied to allocated memory.");
 
     // 4. change memory protection to READ | EXEC
-    let res = mprotect(
+    mprotect(
         ptr,
         page_size.get(),
         ProtFlags::PROT_READ | ProtFlags::PROT_EXEC,
-    );
-
-    if res.is_err() {
-        unsafe {
-            libc::munmap(ptr.as_ptr(), page_size.get());
-        }
-        panic!("mprotect failed");
-    }
+    )?;
 
     log::info!("Memory protection changed to READ | EXEC. Executing shellcode...");
 
@@ -72,10 +65,8 @@ fn main() -> Result<()> {
 
     log::info!("Controlled execution returned here.");
 
-    unsafe {
-        // 7. clean up: unmap the allocated memory
-        libc::munmap(ptr.as_ptr(), page_size.get());
-    }
+    // 7. clean up: unmap the allocated memory
+    munmap(ptr, page_size.get())?;
 
     Ok(())
 }

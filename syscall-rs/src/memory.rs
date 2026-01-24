@@ -75,7 +75,7 @@ libc_bitflags! {
 /// Creates an anonymous memory mapping
 pub fn mmap_anonymous(
     addr: Option<NonZeroUsize>,
-    length: NonZeroUsize,
+    len: NonZeroUsize,
     prot: ProtFlags,
     flags: MapFlags,
 ) -> Result<NonNull<c_void>> {
@@ -84,7 +84,16 @@ pub fn mmap_anonymous(
     let ptr = addr.map_or(ptr::null_mut(), |a| a.get() as *mut c_void);
 
     let flags = MapFlags::MAP_ANONYMOUS | flags;
-    let ret = unsafe { libc::mmap(ptr, length.into(), prot.bits(), flags.bits(), NO_FILE_DESCRIPTOR, 0) };
+    let ret = unsafe {
+        libc::mmap(
+            ptr,
+            len.into(),
+            prot.bits(),
+            flags.bits(),
+            NO_FILE_DESCRIPTOR,
+            0,
+        )
+    };
 
     if ptr::eq(ret, libc::MAP_FAILED) {
         Err(Error::Syscall(std::io::Error::last_os_error()))
@@ -96,6 +105,11 @@ pub fn mmap_anonymous(
 }
 
 /// Changes the memory protection of a given memory region.
-pub fn mprotect(addr: NonNull<c_void>, length: size_t, prot: ProtFlags) -> Result<c_int> {
-    syscall!(mprotect(addr.as_ptr(), length, prot.bits()))
+pub fn mprotect(addr: NonNull<c_void>, len: size_t, prot: ProtFlags) -> Result<()> {
+    syscall!(mprotect(addr.as_ptr(), len, prot.bits())).map(|_| ())
+}
+
+/// Unmaps a previously mapped memory region.
+pub fn munmap(addr: NonNull<c_void>, len: size_t) -> Result<()> {
+    syscall!(munmap(addr.as_ptr(), len)).map(|_| ())
 }
