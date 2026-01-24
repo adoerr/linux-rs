@@ -11,4 +11,8 @@ pub enum Error {
     /// System call error
     #[error("System call error: {0}")]
     Syscall(#[from] std::io::Error),
+
+    /// Interior nul byte error
+    #[error("Nul byte error: {0}")]
+    Nul(#[from] std::ffi::NulError),
 }
