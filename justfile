@@ -38,3 +38,8 @@
 @obfuscate:
     echo "{{BLUE}}Building linux-rs in obfuscated release mode...{{NORMAL}}"
     cargo build --profile obfuscate --features obfuscate
+
+# Build an example
+@example name:
+    echo "{{BLUE}}Running linux-rs example '{{name}}'...{{NORMAL}}"
+    cargo run --example {{name}} --release
