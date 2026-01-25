@@ -2,9 +2,14 @@
 //! This file is part of syscall-rs
 //!
 
-use std::{num::NonZeroUsize, ptr, ptr::NonNull};
+use std::{
+    num::NonZeroUsize,
+    os::unix::io::{AsFd, AsRawFd},
+    ptr,
+    ptr::NonNull,
+};
 
-use libc::{c_int, c_void, size_t};
+use libc::{c_int, c_void, off_t, size_t};
 
 use crate::{Error, Result, libc_bitflags};
 
@@ -72,7 +77,38 @@ libc_bitflags! {
     }
 }
 
+/// Maps a memory region into the process's address space.
+///
+/// See the [`mmap(3)`] man page for detailed requirements.
+///
+/// [`mmap(3)`]: https://man7.org/linux/man-pages/man3/mmap.3p.html
+pub fn mmap<F: AsFd>(
+    addr: Option<NonZeroUsize>,
+    len: NonZeroUsize,
+    prot: ProtFlags,
+    flags: MapFlags,
+    f: F,
+    offset: off_t,
+) -> Result<NonNull<c_void>> {
+    let ptr = addr.map_or(ptr::null_mut(), |a| a.get() as *mut c_void);
+
+    let fd = f.as_fd().as_raw_fd();
+    let ret = unsafe { libc::mmap(ptr, len.get(), prot.bits(), flags.bits(), fd, offset) };
+
+    if ret == libc::MAP_FAILED {
+        Err(Error::Syscall(std::io::Error::last_os_error()))
+    } else {
+        // safety: `libc::mmap` returns a valid non-null pointer or `libc::MAP_FAILED`, thus `ret`
+        // will be non-null here.
+        Ok(unsafe { NonNull::new_unchecked(ret) })
+    }
+}
+
 /// Creates an anonymous memory mapping
+///
+/// See the [`mmap(3)`] man page for detailed requirements.
+///
+/// [`mmap(3)`]: https://man7.org/linux/man-pages/man3/mmap.3p.html
 pub fn mmap_anonymous(
     addr: Option<NonZeroUsize>,
     len: NonZeroUsize,
@@ -95,21 +131,29 @@ pub fn mmap_anonymous(
         )
     };
 
-    if ptr::eq(ret, libc::MAP_FAILED) {
+    if ret == libc::MAP_FAILED {
         Err(Error::Syscall(std::io::Error::last_os_error()))
     } else {
-        // SAFETY: `libc::mmap` returns a valid non-null pointer or `libc::MAP_FAILED`, thus `ret`
+        // safety: `libc::mmap` returns a valid non-null pointer or `libc::MAP_FAILED`, thus `ret`
         // will be non-null here.
         Ok(unsafe { NonNull::new_unchecked(ret) })
     }
 }
 
 /// Changes the memory protection of a given memory region.
+///
+/// See the [`mmap(3)`] man page for detailed requirements.
+///
+/// [`mmap(3)`]: https://man7.org/linux/man-pages/man3/mprotect.3p.html
 pub fn mprotect(addr: NonNull<c_void>, len: size_t, prot: ProtFlags) -> Result<()> {
     syscall!(mprotect(addr.as_ptr(), len, prot.bits())).map(|_| ())
 }
 
 /// Unmaps a previously mapped memory region.
+///
+/// See the [`mmap(3)`] man page for detailed requirements.
+///
+/// [`mmap(3)`]: https://man7.org/linux/man-pages/man3/munmap.3p.html
 pub fn munmap(addr: NonNull<c_void>, len: size_t) -> Result<()> {
     syscall!(munmap(addr.as_ptr(), len)).map(|_| ())
 }
