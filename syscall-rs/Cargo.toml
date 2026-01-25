@@ -18,6 +18,7 @@ doctest = false
 bitflags = { workspace = true }
 libc = { workspace = true, features = [ "extra_traits" ] }
 mio = { workspace = true, features = [ "os-poll", "os-ext", "net" ] }
+nix = { workspace = true, features = ["process", "ptrace"] }
 thiserror = { workspace = true }
 
 [dev-dependencies]

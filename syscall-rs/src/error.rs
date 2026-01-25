@@ -15,4 +15,8 @@ pub enum Error {
     /// Interior nul byte error
     #[error("Nul byte error: {0}")]
     Nul(#[from] std::ffi::NulError),
+
+    /// Nix errno
+    #[error("Nix error: {0}")]
+    Nix(#[from] nix::errno::Errno),
 }
