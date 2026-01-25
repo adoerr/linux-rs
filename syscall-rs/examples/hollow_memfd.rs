@@ -163,39 +163,37 @@ fn entry_offset(binary: &[u8]) -> Option<u64> {
 
     // start at program header table offset
     let mut offset = e_phoff as usize;
-    // size of each program header entry
-    const PROG_HEADER_SIZE: usize = 56;
 
-    //   ELF-64 Program Header Entry (56 bytes total)
-    //   Describes a segment of the file to be mapped into memory.//
+    // ELF-64 Program Header Entry (56 bytes total)
+    // Describes a segment of the file to be mapped into memory.
     //
-    //   Offset   Field         Size      Description
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x00 | p_type      | 4 bytes | Segment Type (1 = PT_LOAD)                   |
-    //   | 0x04 | p_flags     | 4 bytes | Segment Flags (Read/Write/Exec permissions)  |
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x08 | p_offset    | 8 bytes | Offset of segment data in the file           |
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x10 | p_vaddr     | 8 bytes | Virtual address where segment begins in RAM  |
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x18 | p_paddr     | 8 bytes | Physical address (unused on standard Linux)  |
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x20 | p_filesz    | 8 bytes | Size of segment in the file                  |
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x28 | p_memsz     | 8 bytes | Size of segment in memory (can be > filesz)  |
-    //   +------+-------------+---------+----------------------------------------------+
-    //   | 0x30 | p_align     | 8 bytes | Alignment of segment in memory               |
-    //   +------+-------------+---------+----------------------------------------------+
+    // Offset   Field         Size      Description
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x00 | p_type      | 4 bytes | Segment Type (1 = PT_LOAD)                   |
+    // | 0x04 | p_flags     | 4 bytes | Segment Flags (Read/Write/Exec permissions)  |
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x08 | p_offset    | 8 bytes | Offset of segment data in the file           |
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x10 | p_vaddr     | 8 bytes | Virtual address where segment begins in RAM  |
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x18 | p_paddr     | 8 bytes | Physical address (unused on standard Linux)  |
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x20 | p_filesz    | 8 bytes | Size of segment in the file                  |
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x28 | p_memsz     | 8 bytes | Size of segment in memory (can be > filesz)  |
+    // +------+-------------+---------+----------------------------------------------+
+    // | 0x30 | p_align     | 8 bytes | Alignment of segment in memory               |
+    // +------+-------------+---------+----------------------------------------------+
     //
-    //   Load Calculation Logic:
+    // Load Calculation Logic:
     //
-    //   If `e_entry` (Global Entry Point) is >= `p_vaddr` and < `p_vaddr` + `p_memsz`:
-    //     Physical Entry Offset = e_entry - p_vaddr + p_offset
+    // If `e_entry` (Global Entry Point) is >= `p_vaddr` and < `p_vaddr` + `p_memsz`:
+    //   Physical Entry Offset = e_entry - p_vaddr + p_offset
 
     // for each program header entry
     for _ in 0..e_phnum {
         // ensure we don't read beyond buffer
-        if offset + PROG_HEADER_SIZE > binary.len() {
+        if offset + p_ent_size > binary.len() {
             break;
         }
 
