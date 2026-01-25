@@ -37,11 +37,30 @@ fn main() -> Result<()> {
 
             // get the current registers to find the Instruction Pointer (RIP)
             let regs = ptrace::getregs(child)?;
-            log::info!("original RIP (Entry Point): {:#x}", regs.rip);
 
-            // dummy payload: 0xCC is the opcode for INT 3 (Breakpoint).
+            #[cfg(target_arch = "x86_64")]
+            let prog_counter = regs.rip;
+
+            #[cfg(target_arch = "aarch64")]
+            let prog_counter = regs.pc;
+
+            #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+            compile_error!("Unsupported architecture");
+
+            log::info!(
+                "original program counter (entry point): {:#x}",
+                prog_counter
+            );
+
+            // dummy payload:
             // put your shellcode or ELF loader here instead.
-            let payload: [u8; 1] = [0xCC];
+            #[cfg(target_arch = "x86_64")]
+            // x86_64: 0xCC is the opcode for INT 3 (Breakpoint).
+            let payload: &[u8] = &[0xCC];
+
+            #[cfg(target_arch = "aarch64")]
+            // aarch64: 0xd4200000 is brk #0 (Little Endian: 00 00 20 d4)
+            let payload: &[u8] = &[0x00, 0x00, 0x20, 0xd4];
 
             // write payload to child's memory at the RIP address.
             // Using /proc/PID/mem is often easier than PTRACE_POKETEXT for larger writes.
@@ -49,9 +68,12 @@ fn main() -> Result<()> {
             let mut mem_file = OpenOptions::new().write(true).read(true).open(mem_path)?;
 
             // seek to the instruction pointer and write
-            mem_file.seek(SeekFrom::Start(regs.rip))?;
+            mem_file.seek(SeekFrom::Start(prog_counter))?;
             mem_file.write_all(&payload)?;
-            log::info!("injected malicious code (INT 3) at {:#x}", regs.rip);
+            log::info!(
+                "injected malicious code (breakpoint) at {:#x}",
+                prog_counter
+            );
 
             // resume the child
             ptrace::cont(child, None)?;
