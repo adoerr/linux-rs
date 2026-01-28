@@ -19,4 +19,18 @@ pub enum Error {
     /// Nix errno
     #[error("Nix error: {0}")]
     Nix(#[from] nix::errno::Errno),
+
+    /// ELF parsing error
+    #[error("ELF parsing error: {0}")]
+    Elf(#[from] elf::parse::ParseError),
+
+    /// Generic error message
+    #[error("Other error: {0}")]
+    Other(String),
+}
+
+impl From<&str> for Error {
+    fn from(s: &str) -> Self {
+        Error::Other(s.to_string())
+    }
 }

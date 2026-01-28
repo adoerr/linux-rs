@@ -16,6 +16,7 @@ doctest = false
 
 [dependencies]
 bitflags = { workspace = true }
+elf = { workspace = true }
 libc = { workspace = true, features = [ "extra_traits" ] }
 mio = { workspace = true, features = [ "os-poll", "os-ext", "net" ] }
 nix = { workspace = true, features = ["process", "ptrace", "signal", "socket", "net", "fs", "mount"] }

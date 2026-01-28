@@ -21,6 +21,7 @@ macro_rules! syscall {
     }};
 }
 
+mod elf;
 mod error;
 mod fd;
 mod macros;
