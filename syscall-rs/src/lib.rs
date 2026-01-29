@@ -30,6 +30,7 @@ mod signal;
 mod stdio;
 mod wait;
 
+pub use elf::build_id;
 pub use error::{Error, Result};
 pub use fd::FileDesc;
 pub use memory::{MapFlags, ProtFlags, mmap, mmap_anonymous, mprotect, munmap};

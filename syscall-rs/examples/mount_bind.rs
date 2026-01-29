@@ -10,7 +10,7 @@
 use std::{env, path::Path, thread};
 
 use nix::mount::{MsFlags, mount};
-use syscall::Result;
+use syscall::{Result, build_id};
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -19,10 +19,7 @@ fn main() -> Result<()> {
     let current_path = env::current_exe()?;
     log::info!("current executable path: {:?}", current_path);
 
-    // run 'file' command on the current executable path before the bind mount
-    let out = std::process::Command::new("file")
-        .arg(&current_path)
-        .output()?;
+    let id = build_id(&current_path)?.unwrap();
 
     let decoy_path = Path::new("/usr/bin/top");
 
@@ -48,22 +45,11 @@ fn main() -> Result<()> {
     )?;
 
     log::info!("bind mount successful, file on disk now appears as 'top'");
-    log::info!("simulating forensic check of the binary...");
 
-    // run 'file' command on the current executable path after the bind mount
-    let out_new = std::process::Command::new("file")
-        .arg(&current_path)
-        .output()?;
+    let id_new = build_id(&current_path)?.unwrap();
 
-    log::info!(
-        "'file' output before bind mount: {}",
-        String::from_utf8_lossy(&out.stdout)
-    );
-
-    log::info!(
-        "'file' output after bind mount: {}",
-        String::from_utf8_lossy(&out_new.stdout)
-    );
+    log::info!("build id before bind mount: {id}",);
+    log::info!("build id after bind mount: {id_new}");
 
     log::info!("malware continues to run in background...");
     thread::sleep(std::time::Duration::from_secs(3));

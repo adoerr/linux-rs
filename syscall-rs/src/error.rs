@@ -22,7 +22,7 @@ pub enum Error {
 
     /// ELF parsing error
     #[error("ELF parsing error: {0}")]
-    Elf(#[from] elf::parse::ParseError),
+    Elf(#[from] elf::ParseError),
 
     /// Generic error message
     #[error("Other error: {0}")]
