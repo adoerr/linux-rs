@@ -1,0 +1,10 @@
+[package]
+name = "vpn"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = {workspace = true}
+parking_lot = { workspace = true }
+tun-tap = { workspace = true }
+thiserror = { workspace = true }
