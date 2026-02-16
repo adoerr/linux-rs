@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::net::{SocketAddrV4, UdpSocket};
+use std::net::{SocketAddr, SocketAddrV4, UdpSocket};
 
 use parking_lot::{Mutex, MutexGuard};
 use tun_tap::Iface;
@@ -32,7 +32,14 @@ impl Device {
     }
 
     fn listen_udp(&self) -> Result<()> {
-        unimplemented!()
+        let mut buf = [0u8; 1504];
+        loop {
+            let (nbytes, peer) = self.upd.recv_from(&mut buf)?;
+            if let SocketAddr::V4(peer) = peer {
+                self.peer.set_endpoint(peer);
+                self.iface.send(&buf[..nbytes])?;
+            }
+        }
     }
 }
 
