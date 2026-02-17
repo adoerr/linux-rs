@@ -1218,6 +1218,7 @@ name = "vpn"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "log",
  "parking_lot 0.12.5",
  "thiserror 2.0.18",
  "tun-tap",

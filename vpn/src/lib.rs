@@ -14,7 +14,7 @@ pub struct Peer {
 }
 
 pub struct Device {
-    upd: UdpSocket,
+    udp: UdpSocket,
     iface: Iface,
     peer: Peer,
 }
@@ -22,11 +22,18 @@ pub struct Device {
 impl Device {
     fn listen_iface(&self) -> Result<()> {
         let mut buf = [0u8; 1504];
+        {
+            let peer = self.peer.endpoint();
+            if let Some(addr) = peer.as_ref() {
+                log::debug!("handshake to: {addr:?}");
+                self.udp.send_to("hello?".as_bytes(), addr)?;
+            }
+        }
         loop {
             let nbytes = self.iface.recv(&mut buf)?;
             let peer = self.peer.endpoint();
             if let Some(addr) = peer.as_ref() {
-                self.upd.send_to(&buf[..nbytes], addr)?;
+                self.udp.send_to(&buf[..nbytes], addr)?;
             }
         }
     }
@@ -34,9 +41,13 @@ impl Device {
     fn listen_udp(&self) -> Result<()> {
         let mut buf = [0u8; 1504];
         loop {
-            let (nbytes, peer) = self.upd.recv_from(&mut buf)?;
-            if let SocketAddr::V4(peer) = peer {
-                self.peer.set_endpoint(peer);
+            let (nbytes, peer) = self.udp.recv_from(&mut buf)?;
+            if let SocketAddr::V4(addr) = peer {
+                if &buf[..nbytes] == b"hello?" {
+                    log::debug!("handshake from: {addr:?}");
+                    self.peer.set_endpoint(addr);
+                    continue;
+                }
                 self.iface.send(&buf[..nbytes])?;
             }
         }
