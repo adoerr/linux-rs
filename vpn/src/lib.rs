@@ -74,8 +74,16 @@ impl Device {
 
     fn listen_udp(&self) -> Result<()> {
         let mut buf = [0u8; 1504];
+
         loop {
             let (nbytes, peer) = self.udp.recv_from(&mut buf)?;
+
+            if let Ok(hdr) = parse::Ipv4HeaderSlice::from_slice(&buf[..nbytes]) {
+                let src = hdr.source_addr();
+                let dst = hdr.destination_addr();
+                log::debug!("got {nbytes} byte UPD packet src: {src}, dst: {dst}");
+            }
+
             if let SocketAddr::V4(addr) = peer {
                 if &buf[..nbytes] == b"hello?" {
                     log::debug!("handshake from: {addr:?}");
