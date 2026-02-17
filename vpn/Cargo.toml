@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = {workspace = true}
+anyhow = { workspace = true }
+argh = { workspace = true }
+env_logger = { workspace = true }
 log = { workspace = true}
 parking_lot = { workspace = true }
+socket2 = { workspace = true }
 tun-tap = { workspace = true }
 thiserror = { workspace = true }

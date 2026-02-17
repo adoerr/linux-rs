@@ -3,6 +3,7 @@
 use std::net::{SocketAddr, SocketAddrV4, UdpSocket};
 
 use parking_lot::{Mutex, MutexGuard};
+use socket2::{Domain, Protocol, Socket, Type};
 use tun_tap::Iface;
 
 mod error;
@@ -19,7 +20,27 @@ pub struct Device {
     peer: Peer,
 }
 
+fn udp_socket(port: u16) -> Result<UdpSocket> {
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
+    socket.set_reuse_address(true)?;
+    socket.bind(&addr.into())?;
+
+    Ok(socket.into())
+}
+
 impl Device {
+    pub fn new(iface: Iface, peer: Option<SocketAddrV4>) -> Device {
+        let udp = udp_socket(1967).unwrap();
+        Device {
+            udp,
+            iface,
+            peer: Peer {
+                endpoint: Mutex::new(peer),
+            },
+        }
+    }
+
     fn listen_iface(&self) -> Result<()> {
         let mut buf = [0u8; 1504];
         {

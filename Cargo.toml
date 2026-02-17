@@ -18,6 +18,7 @@ nix = { version = "0.31.1" }
 parking_lot = { version = "0.12.5" }
 serde = { version = "1.0.228" }
 serde_json = { version = "1.0.149" }
+socket2 = { version = "0.6.2" }
 thiserror = { version = "2.0.18" }
 tun-tap = { version = "0.1.4" }
 wl-nl80211 = { version = "0.4.0" }
