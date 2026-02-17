@@ -2,6 +2,7 @@
 
 use std::net::{SocketAddr, SocketAddrV4, UdpSocket};
 
+use etherparse as parse;
 use parking_lot::{Mutex, MutexGuard};
 use socket2::{Domain, Protocol, Socket, Type};
 use tun_tap::Iface;
@@ -41,8 +42,9 @@ impl Device {
         }
     }
 
-    fn listen_iface(&self) -> Result<()> {
+    pub fn listen_iface(&self) -> Result<()> {
         let mut buf = [0u8; 1504];
+
         {
             let peer = self.peer.endpoint();
             if let Some(addr) = peer.as_ref() {
@@ -50,11 +52,22 @@ impl Device {
                 self.udp.send_to("hello?".as_bytes(), addr)?;
             }
         }
+
         loop {
             let nbytes = self.iface.recv(&mut buf)?;
+
+            if let Ok(hdr) = parse::Ipv4HeaderSlice::from_slice(&buf[..nbytes]) {
+                let src = hdr.source_addr();
+                let dst = hdr.destination_addr();
+                log::debug!("got {nbytes} byte IPv4 packet src: {src}, dst: {dst}");
+            }
+
             let peer = self.peer.endpoint();
+
             if let Some(addr) = peer.as_ref() {
                 self.udp.send_to(&buf[..nbytes], addr)?;
+            } else {
+                log::error!("no peer found");
             }
         }
     }
