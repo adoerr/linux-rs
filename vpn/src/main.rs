@@ -38,7 +38,6 @@ fn run(addr: Option<&str>) -> Result<()> {
     let dev2 = Arc::clone(&dev1);
 
     let thrd1 = thread::spawn(move || -> Result<()> { dev1.listen_iface() });
-
     let thrd2 = thread::spawn(move || -> Result<()> { dev2.listen_udp() });
 
     _ = thrd1.join().unwrap();
