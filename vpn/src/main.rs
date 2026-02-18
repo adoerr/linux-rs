@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc, thread};
 
 use argh::FromArgs;
 use tun_tap::{Iface, Mode};
@@ -24,15 +24,25 @@ fn main() -> Result<()> {
 }
 
 fn run(addr: Option<&str>) -> Result<()> {
-    let _iface = Iface::without_packet_info("vpn0", Mode::Tun)?;
+    let iface = Iface::without_packet_info("vpn0", Mode::Tun)?;
 
-    let _peer = addr.and_then(|addr| addr.parse().ok()).and_then(|addr| {
-        if let SocketAddr::V4(addr) = addr {
-            Some(addr)
-        } else {
-            None
-        }
-    });
+    let peer = addr
+        .and_then(|addr| addr.parse().ok())
+        .and_then(|addr| match addr {
+            SocketAddr::V4(v4) => Some(v4),
+            _ => None,
+        });
+
+    let dev = Device::new(iface, peer);
+    let dev1 = Arc::new(dev);
+    let dev2 = Arc::clone(&dev1);
+
+    let thrd1 = thread::spawn(move || -> Result<()> { dev1.listen_iface() });
+
+    let thrd2 = thread::spawn(move || -> Result<()> { dev2.listen_udp() });
+
+    _ = thrd1.join().unwrap();
+    _ = thrd2.join().unwrap();
 
     Ok(())
 }

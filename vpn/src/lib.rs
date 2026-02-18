@@ -72,7 +72,7 @@ impl Device {
         }
     }
 
-    fn listen_udp(&self) -> Result<()> {
+    pub fn listen_udp(&self) -> Result<()> {
         let mut buf = [0u8; 1504];
 
         loop {
