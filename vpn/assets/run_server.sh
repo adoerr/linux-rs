@@ -3,7 +3,7 @@
 # This is run_server.sh
 
 setcap 'cap_net_admin=eip'  ./vpn
-./vpn &
+RUST_LOG=debug ./vpn &
 
 pid=$!
 

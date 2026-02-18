@@ -7,8 +7,8 @@ RUN apt install -y iproute2 libcap2-bin netcat jq termshark
 COPY ../../target/release/vpn /vpn
 COPY ../../target/release/vpn-conf /vpn-conf
 
-COPY run_docker.sh /run_docker.sh
+COPY run_server.sh /run_server.sh
 
 COPY *.conf /
 
-CMD bash run_docker.sh
+CMD bash run_server.sh

@@ -4,7 +4,7 @@
 
 sudo setcap cap_net_admin=eip target/release/vpn
 
-target/release/vpn  172.18.0.2:1967 &
+RUST_LOG=debug target/release/vpn  172.18.0.2:1967 &
 
 pid=$!
 
