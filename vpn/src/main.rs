@@ -18,8 +18,10 @@ fn main() -> Result<()> {
     env_logger::init();
     log::info!("starting vpn ...");
 
-    let _cli: Cli = argh::from_env();
+    let cli: Cli = argh::from_env();
 
+    run(cli.peer.as_deref())?;
+    
     Ok(())
 }
 
