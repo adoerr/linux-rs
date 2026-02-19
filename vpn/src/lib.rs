@@ -10,7 +10,7 @@ use tun_tap::Iface;
 mod error;
 mod poll;
 
-pub use error::Result;
+pub use error::{Error, Result};
 
 pub struct Peer {
     endpoint: Mutex<Option<SocketAddrV4>>,

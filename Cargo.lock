@@ -1268,6 +1268,7 @@ dependencies = [
  "env_logger",
  "etherparse",
  "log",
+ "nix",
  "parking_lot 0.12.5",
  "socket2",
  "thiserror 2.0.18",

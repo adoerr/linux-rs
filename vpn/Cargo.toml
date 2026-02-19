@@ -9,6 +9,7 @@ argh = { workspace = true }
 env_logger = { workspace = true }
 etherparse = { workspace = true }
 log = { workspace = true}
+nix = { workspace = true, features = ["socket", "event"]}
 parking_lot = { workspace = true }
 socket2 = { workspace = true }
 tun-tap = { workspace = true }
