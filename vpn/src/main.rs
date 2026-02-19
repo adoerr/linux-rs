@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let cli: Cli = argh::from_env();
 
     run(cli.peer.as_deref())?;
-    
+
     Ok(())
 }
 

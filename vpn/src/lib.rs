@@ -8,6 +8,7 @@ use socket2::{Domain, Protocol, Socket, Type};
 use tun_tap::Iface;
 
 mod error;
+mod poll;
 
 pub use error::Result;
 
