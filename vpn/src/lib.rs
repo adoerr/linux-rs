@@ -24,8 +24,10 @@ pub struct Device {
 
 fn udp_socket(port: u16) -> Result<UdpSocket> {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
     let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
     socket.set_reuse_address(true)?;
+    socket.set_nonblocking(true)?;
     socket.bind(&addr.into())?;
 
     Ok(socket.into())
