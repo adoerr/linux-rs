@@ -1,9 +1,12 @@
 #![allow(dead_code)]
 
-use std::net::{SocketAddr, SocketAddrV4, UdpSocket};
+use std::{
+    net::{SocketAddr, SocketAddrV4, UdpSocket},
+    sync::Arc,
+};
 
 use etherparse as parse;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::{MutexGuard, RwLock, RwLockReadGuard};
 use socket2::{Domain, Protocol, Socket, Type};
 use tun_tap::Iface;
 
@@ -12,14 +15,38 @@ mod poll;
 
 pub use error::{Error, Result};
 
-pub struct Peer {
-    endpoint: Mutex<Option<SocketAddrV4>>,
+use crate::poll::Poll;
+
+pub struct DeviceConfig<'a> {
+    use_connected_peer: bool,
+    listen_port: u16,
+    tun_name: &'a str,
+    peer_addr: Option<SocketAddrV4>,
 }
 
 pub struct Device {
-    udp: UdpSocket,
+    udp: Arc<UdpSocket>,
     iface: Iface,
     peer: Peer,
+    poll: Poll,
+    use_connected_peer: bool,
+    listen_port: u16,
+}
+
+pub struct Peer {
+    endpoint: RwLock<Endpoint>,
+}
+
+#[derive(Default)]
+pub struct Endpoint {
+    pub addr: Option<SocketAddrV4>,
+    pub conn: Option<Arc<UdpSocket>>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum SockID {
+    Disconnected,
+    ConnectedPeer,
 }
 
 fn udp_socket(port: u16) -> Result<UdpSocket> {
@@ -39,9 +66,7 @@ impl Device {
         Device {
             udp,
             iface,
-            peer: Peer {
-                endpoint: Mutex::new(peer),
-            },
+            peer: Peer::new(Endpoint::default()),
         }
     }
 
@@ -100,14 +125,26 @@ impl Device {
 }
 
 impl Peer {
-    fn endpoint(&self) -> MutexGuard<'_, Option<SocketAddrV4>> {
-        self.endpoint.lock()
+    fn new(endpoint: Endpoint) -> Peer {
+        Self {
+            endpoint: RwLock::new(endpoint),
+        }
     }
 
-    fn set_endpoint(&self, addr: SocketAddrV4) {
-        let mut endpoint = self.endpoint.lock();
-        if endpoint.is_none() {
-            *endpoint = Some(addr);
+    fn endpoint(&self) -> RwLockReadGuard<Endpoint> {
+        self.endpoint.read()
+    }
+
+    fn set_endpoint(&self, addr: SocketAddrV4) -> (bool, Option<Arc<UdpSocket>>) {
+        let endpoint = self.endpoint.read();
+        if endpoint.addr == Some(addr) {
+            return (true, None);
         }
+        drop(endpoint);
+
+        let mut endpoint = self.endpoint.write();
+        endpoint.addr = Some(addr);
+
+        (true, endpoint.conn.take())
     }
 }
