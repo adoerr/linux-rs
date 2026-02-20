@@ -5,17 +5,17 @@ use std::{
     sync::Arc,
 };
 
-use etherparse as parse;
-use parking_lot::{MutexGuard, RwLock, RwLockReadGuard};
+use parking_lot::{RwLock, RwLockReadGuard};
 use socket2::{Domain, Protocol, Socket, Type};
-use tun_tap::Iface;
+use tun_tap::{Iface, Mode};
 
 mod error;
 mod poll;
 
 pub use error::{Error, Result};
 
-use crate::poll::Poll;
+pub use crate::poll::Poll;
+use crate::poll::Token;
 
 pub struct DeviceConfig<'a> {
     use_connected_peer: bool,
@@ -47,6 +47,33 @@ pub struct Endpoint {
 enum SockID {
     Disconnected,
     ConnectedPeer,
+    Invalid,
+}
+
+impl From<SockID> for i32 {
+    fn from(value: SockID) -> Self {
+        match value {
+            SockID::Disconnected => -1,
+            SockID::ConnectedPeer => 0,
+            SockID::Invalid => -99,
+        }
+    }
+}
+
+impl From<i32> for SockID {
+    fn from(value: i32) -> Self {
+        match value {
+            -1 => SockID::Disconnected,
+            0 => SockID::ConnectedPeer,
+            _ => SockID::Invalid,
+        }
+    }
+}
+
+const BUF_SIZE: usize = 1504;
+
+struct ThreadData {
+    msg_buf: [u8; BUF_SIZE],
 }
 
 fn udp_socket(port: u16) -> Result<UdpSocket> {
@@ -60,67 +87,95 @@ fn udp_socket(port: u16) -> Result<UdpSocket> {
     Ok(socket.into())
 }
 
+impl<'a> DeviceConfig<'a> {
+    pub fn new(
+        use_connected_peer: bool,
+        listen_port: u16,
+        tun_name: &'a str,
+        peer_addr: Option<SocketAddrV4>,
+    ) -> DeviceConfig {
+        Self {
+            use_connected_peer,
+            listen_port,
+            tun_name,
+            peer_addr,
+        }
+    }
+}
+
 impl Device {
-    pub fn new(iface: Iface, peer: Option<SocketAddrV4>) -> Device {
-        let udp = udp_socket(1967).unwrap();
-        Device {
-            udp,
+    pub fn new(config: DeviceConfig) -> Result<Device> {
+        let iface = Iface::without_packet_info(config.tun_name, Mode::Tun)?;
+        iface.set_non_blocking()?;
+
+        let poll = Poll::new()?;
+        let use_connected_peer = config.use_connected_peer;
+        let listen_port = config.listen_port;
+
+        let peer = Peer::new(Endpoint::default());
+        let udp = match config.peer_addr {
+            Some(addr) => {
+                peer.set_endpoint(addr);
+                peer.connect_endpoint(listen_port)?
+            }
+            None => Arc::new(udp_socket(config.listen_port)?),
+        };
+
+        Ok(Self {
             iface,
-            peer: Peer::new(Endpoint::default()),
-        }
+            udp,
+            poll,
+            peer,
+            use_connected_peer,
+            listen_port,
+        })
     }
 
-    pub fn listen_iface(&self) -> Result<()> {
-        let mut buf = [0u8; 1504];
-
-        {
-            let peer = self.peer.endpoint();
-            if let Some(addr) = peer.as_ref() {
-                log::debug!("handshake to: {addr:?}");
-                self.udp.send_to("hello?".as_bytes(), addr)?;
-            }
-        }
+    pub fn wait(&self) {
+        let mut t = ThreadData {
+            msg_buf: [0; BUF_SIZE],
+        };
 
         loop {
-            let nbytes = self.iface.recv(&mut buf)?;
-
-            if let Ok(hdr) = parse::Ipv4HeaderSlice::from_slice(&buf[..nbytes]) {
-                let src = hdr.source_addr();
-                let dst = hdr.destination_addr();
-                log::debug!("got {nbytes} byte IPv4 packet src: {src}, dst: {dst}");
-            }
-
-            let peer = self.peer.endpoint();
-
-            if let Some(addr) = peer.as_ref() {
-                self.udp.send_to(&buf[..nbytes], addr)?;
-            } else {
-                log::error!("no peer found");
-            }
-        }
-    }
-
-    pub fn listen_udp(&self) -> Result<()> {
-        let mut buf = [0u8; 1504];
-
-        loop {
-            let (nbytes, peer) = self.udp.recv_from(&mut buf)?;
-
-            if let Ok(hdr) = parse::Ipv4HeaderSlice::from_slice(&buf[..nbytes]) {
-                let src = hdr.source_addr();
-                let dst = hdr.destination_addr();
-                log::debug!("got {nbytes} byte UPD packet src: {src}, dst: {dst}");
-            }
-
-            if let SocketAddr::V4(addr) = peer {
-                if &buf[..nbytes] == b"hello?" {
-                    log::debug!("handshake from: {addr:?}");
-                    self.peer.set_endpoint(addr);
-                    continue;
+            if let Ok(token) = self.poll.wait() {
+                match token {
+                    Token::Tun => {
+                        if let Err(err) = self.handle_tun(&mut t) {
+                            log::error!("tun error: {:?}", err);
+                        }
+                    }
+                    Token::Sock(SockID::Disconnected) => {
+                        if let Err(err) = self.handle_udp(&self.udp, &mut t) {
+                            log::error!("udp error: {:?}", err);
+                        }
+                    }
+                    Token::Sock(SockID::ConnectedPeer) => {
+                        if let Some(conn) = self.peer.endpoint().conn.as_deref() {
+                            if let Err(err) = self.handle_peer(conn, &mut t) {
+                                log::error!("peer error: {:?}", err);
+                            }
+                        }
+                    }
+                    Token::Sock(SockID::Invalid) => {
+                        log::error!("invalid socket id");
+                    }
                 }
-                self.iface.send(&buf[..nbytes])?;
+            } else {
+                log::error!("poll wait error");
             }
         }
+    }
+
+    fn handle_tun(&self, thread_data: &mut ThreadData) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn handle_udp(&self, sock: &UdpSocket, thread_data: &mut ThreadData) -> Result<()> {
+        unimplemented!()
+    }
+
+    fn handle_peer(&self, sock: &UdpSocket, thread_data: &mut ThreadData) -> Result<()> {
+        unimplemented!()
     }
 }
 
@@ -146,5 +201,20 @@ impl Peer {
         endpoint.addr = Some(addr);
 
         (true, endpoint.conn.take())
+    }
+
+    fn connect_endpoint(&self, port: u16) -> Result<Arc<UdpSocket>> {
+        let mut endpoint = self.endpoint.write();
+        let addr = endpoint.addr.unwrap();
+
+        assert!(endpoint.conn.is_none());
+
+        let conn = udp_socket(port)?;
+        conn.connect(addr)?;
+        let conn = Arc::new(conn);
+
+        endpoint.conn = Some(Arc::clone(&conn));
+
+        Ok(conn)
     }
 }
