@@ -7,6 +7,9 @@ use nix::{
 
 use crate::{Error, Result};
 
+/// Custom token type which helps to identify which socket has become ready
+/// for reading and in order to determine the appropriate handler function
+/// to call.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Token<ID = i32> {
     Tun,

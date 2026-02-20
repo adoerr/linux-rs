@@ -6,7 +6,7 @@ exclude = ["debugger"]
 resolver = "3"
 
 [workspace.dependencies]
-anyhow = { version = "1.0.101" }
+anyhow = { version = "1.0.102" }
 argh = { version = "0.1.14" }
 bitflags = { version = "2.11.0" }
 elf = { version = "0.8.0" }
