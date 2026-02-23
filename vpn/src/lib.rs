@@ -2,11 +2,11 @@
 
 use std::{
     net::{SocketAddr, SocketAddrV4, UdpSocket},
+    os::fd::{AsRawFd, BorrowedFd},
     sync::Arc,
 };
 
 use etherparse as parse;
-use log;
 use parking_lot::{RwLock, RwLockReadGuard};
 use socket2::{Domain, Protocol, Socket, Type};
 use tun_tap::{Iface, Mode};
@@ -95,7 +95,7 @@ impl<'a> DeviceConfig<'a> {
         listen_port: u16,
         tun_name: &'a str,
         peer_addr: Option<SocketAddrV4>,
-    ) -> DeviceConfig {
+    ) -> Self {
         Self {
             use_connected_peer,
             listen_port,
@@ -133,6 +133,23 @@ impl Device {
         })
     }
 
+    pub fn start(&self) -> Result<()> {
+        log::info!("Starting vpn device...");
+
+        self.poll
+            .register_read(self.udp.as_ref(), Token::Sock(SockID::Disconnected))?;
+
+        let tun_fd = unsafe { BorrowedFd::borrow_raw(self.iface.as_raw_fd()) };
+        self.poll.register_read::<_, SockID>(tun_fd, Token::Tun)?;
+        self.handshake()?;
+
+        Ok(())
+    }
+
+    fn handshake(&self) -> Result<()> {
+        unimplemented!()
+    }
+
     pub fn wait(&self) {
         let mut t = ThreadData {
             msg_buf: [0; BUF_SIZE],
@@ -152,10 +169,10 @@ impl Device {
                         }
                     }
                     Token::Sock(SockID::ConnectedPeer) => {
-                        if let Some(conn) = self.peer.endpoint().conn.as_deref() {
-                            if let Err(err) = self.handle_peer(conn, &mut t) {
-                                log::error!("peer error: {:?}", err);
-                            }
+                        if let Some(conn) = self.peer.endpoint().conn.as_deref()
+                            && let Err(err) = self.handle_peer(conn, &mut t)
+                        {
+                            log::error!("peer error: {:?}", err);
                         }
                     }
                     Token::Sock(SockID::Invalid) => {
@@ -244,7 +261,25 @@ impl Device {
     }
 
     fn handle_peer(&self, sock: &UdpSocket, thread_data: &mut ThreadData) -> Result<()> {
-        unimplemented!()
+        let buf = &mut thread_data.msg_buf[..];
+
+        while let Ok(nbytes) = sock.recv(&mut buf[..]) {
+            log::debug!("got packet of size: {nbytes}, from peer");
+
+            match parse::Ipv4HeaderSlice::from_slice(&buf[..nbytes]) {
+                Ok(hdr) => {
+                    let src = hdr.source_addr();
+                    let dst = hdr.destination_addr();
+                    log::debug!("  {src} -> {dst}");
+                }
+                _ => {
+                    log::debug!("not an Ipv4 packet: {:?}", &buf[..nbytes]);
+                }
+            }
+            let _ = self.iface.send(&buf[..nbytes]);
+        }
+
+        Ok(())
     }
 }
 
@@ -255,7 +290,7 @@ impl Peer {
         }
     }
 
-    fn endpoint(&self) -> RwLockReadGuard<Endpoint> {
+    fn endpoint(&self) -> RwLockReadGuard<'_, Endpoint> {
         self.endpoint.read()
     }
 
