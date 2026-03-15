@@ -1,6 +1,6 @@
 
 [workspace]
-members = ["bluetooth", "netlink", "poll", "syscall-rs", "vpn"]
+members = ["bluetooth", "netlink", "poll", "syscall-rs", "vpn", "wayland"]
 exclude = ["debugger"]
 
 resolver = "3"
@@ -19,6 +19,7 @@ nix = { version = "0.31.2" }
 parking_lot = { version = "0.12.5" }
 serde = { version = "1.0.228" }
 serde_json = { version = "1.0.149" }
+smithay-client-toolkit = { version = "0.20.0"}
 socket2 = { version = "0.6.3" }
 thiserror = { version = "2.0.18" }
 tun-tap = { version = "0.1.4" }
