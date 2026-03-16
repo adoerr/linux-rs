@@ -8,8 +8,9 @@ use error::Result;
 use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, WEnum, delegate_noop,
     protocol::{
-        wl_buffer, wl_compositor, wl_keyboard, wl_keyboard::WlKeyboard, wl_registry,
-        wl_registry::WlRegistry, wl_seat, wl_shm, wl_shm_pool, wl_surface, wl_surface::WlSurface,
+        wl_buffer, wl_compositor, wl_keyboard, wl_keyboard::WlKeyboard, wl_pointer,
+        wl_pointer::WlPointer, wl_registry, wl_registry::WlRegistry, wl_seat, wl_shm, wl_shm_pool,
+        wl_surface, wl_surface::WlSurface,
     },
 };
 use wayland_protocols::xdg::shell::client::{
@@ -24,6 +25,9 @@ struct State {
     wm_base: Option<xdg_wm_base::XdgWmBase>,
     xdg_surface: Option<(xdg_surface::XdgSurface, xdg_toplevel::XdgToplevel)>,
     configured: bool,
+    seat: Option<wl_seat::WlSeat>,
+    cursor_x: f64,
+    cursor_y: f64,
 }
 
 fn main() -> Result<()> {
@@ -42,6 +46,9 @@ fn main() -> Result<()> {
         wm_base: None,
         xdg_surface: None,
         configured: false,
+        seat: None,
+        cursor_x: 0.0,
+        cursor_y: 0.0,
     };
 
     println!("Starting example window app, press <ESC> to quit.");
@@ -142,7 +149,8 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                     }
                 }
                 "wl_seat" => {
-                    registry.bind::<wl_seat::WlSeat, _, _>(name, 1, queue_handle, ());
+                    let seat = registry.bind::<wl_seat::WlSeat, _, _>(name, 1, queue_handle, ());
+                    state.seat = Some(seat);
                 }
                 "xdg_wm_base" => {
                     let wm_base =
@@ -164,7 +172,22 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
 fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
     use std::{cmp::min, io::Write};
     let mut buf = std::io::BufWriter::new(tmp);
-    for y in 0..buf_y {
+    // Draw title bar (30px)
+    let title_h = 30;
+    for y in 0..title_h {
+        for x in 0..buf_x {
+            // Close button (red) at top-right
+            if x >= buf_x - 30 {
+                // Red: ARGB(FF, FF, 0, 0)
+                buf.write_all(&[0x00, 0x00, 0xFF, 0xFF]).unwrap();
+            } else {
+                // Title bar (grey): ARGB(FF, 88, 88, 88)
+                buf.write_all(&[0x88, 0x88, 0x88, 0xFF]).unwrap();
+            }
+        }
+    }
+    // Draw content
+    for y in 0..(buf_y - title_h) {
         for x in 0..buf_x {
             let a = 0xFF;
             let r = min(((buf_x - x) * 0xFF) / buf_x, ((buf_y - y) * 0xFF) / buf_y);
@@ -241,9 +264,13 @@ impl Dispatch<wl_seat::WlSeat, ()> for State {
             capabilities: WEnum::Value(capabilities),
             ..
         } = event
-            && capabilities.contains(wl_seat::Capability::Keyboard)
         {
-            seat.get_keyboard(queue_handle, ());
+            if capabilities.contains(wl_seat::Capability::Keyboard) {
+                seat.get_keyboard(queue_handle, ());
+            }
+            if capabilities.contains(wl_seat::Capability::Pointer) {
+                seat.get_pointer(queue_handle, ());
+            }
         }
     }
 }
@@ -261,6 +288,50 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
             && key == 1
         {
             state.running = false; // quit the app
+        }
+    }
+}
+
+impl Dispatch<wl_pointer::WlPointer, ()> for State {
+    fn event(
+        state: &mut Self,
+        _: &WlPointer,
+        event: wl_pointer::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        match event {
+            wl_pointer::Event::Enter {
+                surface_x,
+                surface_y,
+                ..
+            } => {
+                state.cursor_x = surface_x;
+                state.cursor_y = surface_y;
+            }
+            wl_pointer::Event::Motion {
+                surface_x,
+                surface_y,
+                ..
+            } => {
+                state.cursor_x = surface_x;
+                state.cursor_y = surface_y;
+            }
+            wl_pointer::Event::Button {
+                state: WEnum::Value(wl_pointer::ButtonState::Pressed),
+                serial,
+                ..
+            } if state.cursor_y < 30.0 => {
+                // Title bar clicked
+                if state.cursor_x > 290.0 {
+                    state.running = false;
+                } else if let (Some((_, toplevel)), Some(seat)) = (&state.xdg_surface, &state.seat)
+                {
+                    toplevel._move(seat, serial);
+                }
+            }
+            _ => {}
         }
     }
 }
