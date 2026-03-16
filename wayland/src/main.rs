@@ -2,6 +2,8 @@
 
 mod error;
 
+use std::{fs::File, os::fd::AsFd};
+
 use error::Result;
 use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, WEnum, delegate_noop,
@@ -112,6 +114,33 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                         state.init_xdg_surface(queue_handle);
                     }
                 }
+                "wl_shm" => {
+                    let shm = registry.bind::<wl_shm::WlShm, _, _>(name, 1, queue_handle, ());
+                    let (init_w, init_h) = (320, 240);
+                    let mut file = tempfile::tempfile().unwrap();
+                    draw(&mut file, (init_w, init_h));
+                    let pool = shm.create_pool(
+                        file.as_fd(),
+                        (init_w * init_h * 4) as i32,
+                        queue_handle,
+                        (),
+                    );
+                    let buffer = pool.create_buffer(
+                        0,
+                        init_w as i32,
+                        init_h as i32,
+                        (init_w * 4) as i32,
+                        wl_shm::Format::Argb8888,
+                        queue_handle,
+                        (),
+                    );
+                    state.buffer = Some(buffer.clone());
+                    if state.configured {
+                        let surface = state.surface.as_ref().unwrap();
+                        surface.attach(Some(&buffer), 0, 0);
+                        surface.commit();
+                    }
+                }
                 "wl_seat" => {
                     registry.bind::<wl_seat::WlSeat, _, _>(name, 1, queue_handle, ());
                 }
@@ -130,6 +159,22 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
             }
         }
     }
+}
+
+fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
+    use std::{cmp::min, io::Write};
+    let mut buf = std::io::BufWriter::new(tmp);
+    for y in 0..buf_y {
+        for x in 0..buf_x {
+            let a = 0xFF;
+            let r = min(((buf_x - x) * 0xFF) / buf_x, ((buf_y - y) * 0xFF) / buf_y);
+            let g = min((x * 0xFF) / buf_x, ((buf_y - y) * 0xFF) / buf_y);
+            let b = min(((buf_x - x) * 0xFF) / buf_x, (y * 0xFF) / buf_y);
+            buf.write_all(&[b as u8, g as u8, r as u8, a as u8])
+                .unwrap();
+        }
+    }
+    buf.flush().unwrap();
 }
 
 impl Dispatch<xdg_surface::XdgSurface, ()> for State {
