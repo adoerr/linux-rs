@@ -7,5 +7,7 @@ edition = "2024"
 anyhow = { workspace = true }
 env_logger = {workspace = true}
 log = {workspace = true}
-smithay-client-toolkit = { workspace = true }
 thiserror = { workspace = true }
+wayland-client = { workspace = true }
+wayland-protocols = { workspace = true, features = ["client"] }
+
