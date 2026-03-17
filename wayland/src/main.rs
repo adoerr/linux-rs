@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports, unused_variables)]
-
 mod error;
 
 use std::{fs::File, os::fd::AsFd};
@@ -8,9 +6,9 @@ use error::Result;
 use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, WEnum, delegate_noop,
     protocol::{
-        wl_buffer, wl_compositor, wl_keyboard, wl_keyboard::WlKeyboard, wl_pointer,
-        wl_pointer::WlPointer, wl_registry, wl_registry::WlRegistry, wl_seat, wl_shm, wl_shm_pool,
-        wl_surface, wl_surface::WlSurface,
+        wl_buffer::WlBuffer, wl_compositor::WlCompositor, wl_keyboard, wl_keyboard::WlKeyboard,
+        wl_pointer, wl_pointer::WlPointer, wl_registry, wl_registry::WlRegistry, wl_seat,
+        wl_seat::WlSeat, wl_shm, wl_shm::WlShm, wl_shm_pool::WlShmPool, wl_surface::WlSurface,
     },
 };
 use wayland_protocols::xdg::shell::client::{
@@ -19,13 +17,13 @@ use wayland_protocols::xdg::shell::client::{
 };
 
 struct State {
+    surface: Option<WlSurface>,
+    buffer: Option<WlBuffer>,
+    wm_base: Option<XdgWmBase>,
+    xdg_surface: Option<(XdgSurface, XdgToplevel)>,
+    seat: Option<WlSeat>,
     running: bool,
-    surface: Option<wl_surface::WlSurface>,
-    buffer: Option<wl_buffer::WlBuffer>,
-    wm_base: Option<xdg_wm_base::XdgWmBase>,
-    xdg_surface: Option<(xdg_surface::XdgSurface, xdg_toplevel::XdgToplevel)>,
     configured: bool,
-    seat: Option<wl_seat::WlSeat>,
     cursor_x: f64,
     cursor_y: f64,
 }
@@ -61,11 +59,11 @@ fn main() -> Result<()> {
 }
 
 // ignore events for the object types below
-delegate_noop!(State: ignore wl_compositor::WlCompositor);
-delegate_noop!(State: ignore wl_surface::WlSurface);
-delegate_noop!(State: ignore wl_shm::WlShm);
-delegate_noop!(State: ignore wl_shm_pool::WlShmPool);
-delegate_noop!(State: ignore wl_buffer::WlBuffer);
+delegate_noop!(State: ignore WlCompositor);
+delegate_noop!(State: ignore WlSurface);
+delegate_noop!(State: ignore WlShm);
+delegate_noop!(State: ignore WlShmPool);
+delegate_noop!(State: ignore WlBuffer);
 
 impl State {
     /// Initializes the XDG surface and toplevel for the window.
@@ -93,13 +91,13 @@ impl State {
     }
 }
 
-impl Dispatch<wl_registry::WlRegistry, ()> for State {
+impl Dispatch<WlRegistry, ()> for State {
     fn event(
         state: &mut Self,
-        registry: &wl_registry::WlRegistry,
+        registry: &WlRegistry,
         event: wl_registry::Event,
-        data: &(),
-        conn: &Connection,
+        _: &(),
+        _: &Connection,
         queue_handle: &QueueHandle<Self>,
     ) {
         if let wl_registry::Event::Global {
@@ -108,12 +106,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
         {
             match &interface[..] {
                 "wl_compositor" => {
-                    let compositor = registry.bind::<wl_compositor::WlCompositor, _, _>(
-                        name,
-                        1,
-                        queue_handle,
-                        (),
-                    );
+                    let compositor = registry.bind::<WlCompositor, _, _>(name, 1, queue_handle, ());
                     let surface = compositor.create_surface(queue_handle, ());
                     state.surface = Some(surface);
                     // check if we still need to init the XDG surface
@@ -122,7 +115,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                     }
                 }
                 "wl_shm" => {
-                    let shm = registry.bind::<wl_shm::WlShm, _, _>(name, 1, queue_handle, ());
+                    let shm = registry.bind::<WlShm, _, _>(name, 1, queue_handle, ());
                     let (init_w, init_h) = (320, 240);
                     let mut file = tempfile::tempfile().unwrap();
                     draw(&mut file, (init_w, init_h));
@@ -149,12 +142,11 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                     }
                 }
                 "wl_seat" => {
-                    let seat = registry.bind::<wl_seat::WlSeat, _, _>(name, 1, queue_handle, ());
+                    let seat = registry.bind::<WlSeat, _, _>(name, 1, queue_handle, ());
                     state.seat = Some(seat);
                 }
                 "xdg_wm_base" => {
-                    let wm_base =
-                        registry.bind::<xdg_wm_base::XdgWmBase, _, _>(name, 1, queue_handle, ());
+                    let wm_base = registry.bind::<XdgWmBase, _, _>(name, 1, queue_handle, ());
                     state.wm_base = Some(wm_base);
                     // check if we still need to init the XDG surface
                     if state.wm_base.is_some() && state.xdg_surface.is_none() {
@@ -174,14 +166,14 @@ fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
     let mut buf = std::io::BufWriter::new(tmp);
     // Draw title bar (30px)
     let title_h = 30;
-    for y in 0..title_h {
+    for _ in 0..title_h {
         for x in 0..buf_x {
             // Close button (red) at top-right
             if x >= buf_x - 30 {
                 // Red: ARGB(FF, FF, 0, 0)
                 buf.write_all(&[0x00, 0x00, 0xFF, 0xFF]).unwrap();
             } else {
-                // Title bar (grey): ARGB(FF, 88, 88, 88)
+                // Title bar (gray): ARGB(FF, 88, 88, 88)
                 buf.write_all(&[0x88, 0x88, 0x88, 0xFF]).unwrap();
             }
         }
@@ -200,7 +192,7 @@ fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
     buf.flush().unwrap();
 }
 
-impl Dispatch<xdg_surface::XdgSurface, ()> for State {
+impl Dispatch<XdgSurface, ()> for State {
     fn event(
         state: &mut Self,
         xdg_surface: &XdgSurface,
@@ -221,7 +213,7 @@ impl Dispatch<xdg_surface::XdgSurface, ()> for State {
     }
 }
 
-impl Dispatch<xdg_wm_base::XdgWmBase, ()> for State {
+impl Dispatch<XdgWmBase, ()> for State {
     fn event(
         _: &mut Self,
         wm_base: &XdgWmBase,
@@ -236,7 +228,7 @@ impl Dispatch<xdg_wm_base::XdgWmBase, ()> for State {
     }
 }
 
-impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
+impl Dispatch<XdgToplevel, ()> for State {
     fn event(
         state: &mut Self,
         _: &XdgToplevel,
@@ -251,10 +243,10 @@ impl Dispatch<xdg_toplevel::XdgToplevel, ()> for State {
     }
 }
 
-impl Dispatch<wl_seat::WlSeat, ()> for State {
+impl Dispatch<WlSeat, ()> for State {
     fn event(
         _: &mut Self,
-        seat: &wl_seat::WlSeat,
+        seat: &WlSeat,
         event: wl_seat::Event,
         _: &(),
         _: &Connection,
@@ -275,7 +267,7 @@ impl Dispatch<wl_seat::WlSeat, ()> for State {
     }
 }
 
-impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
+impl Dispatch<WlKeyboard, ()> for State {
     fn event(
         state: &mut Self,
         _: &WlKeyboard,
@@ -292,7 +284,7 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
     }
 }
 
-impl Dispatch<wl_pointer::WlPointer, ()> for State {
+impl Dispatch<WlPointer, ()> for State {
     fn event(
         state: &mut Self,
         _: &WlPointer,
