@@ -1,7 +1,12 @@
 mod error;
 
-use std::{fs::File, os::fd::AsFd};
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    os::fd::AsFd,
+};
 
+use cairo::{Context, Format, ImageSurface, LinearGradient};
 use error::Result;
 use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, WEnum, delegate_noop,
@@ -162,33 +167,37 @@ impl Dispatch<WlRegistry, ()> for State {
 }
 
 fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
-    use std::{cmp::min, io::Write};
-    let mut buf = std::io::BufWriter::new(tmp);
-    // Draw title bar (30px)
-    let title_h = 30;
-    for _ in 0..title_h {
-        for x in 0..buf_x {
-            // Close button (red) at top-right
-            if x >= buf_x - 30 {
-                // Red: ARGB(FF, FF, 0, 0)
-                buf.write_all(&[0x00, 0x00, 0xFF, 0xFF]).unwrap();
-            } else {
-                // Title bar (gray): ARGB(FF, 88, 88, 88)
-                buf.write_all(&[0x88, 0x88, 0x88, 0xFF]).unwrap();
-            }
-        }
+    let mut surface = ImageSurface::create(Format::ARgb32, buf_x as i32, buf_y as i32).unwrap();
+    // This block causes the Cairo context to drop it's mutable surface reference at the end of it.
+    // This is needed because in order to write the surface data into the `tmp` file, exclusive
+    // access to the surface data is needed.
+    {
+        let cr = Context::new(&surface).unwrap();
+
+        // Draw title bar
+        cr.set_source_rgb(0.53, 0.53, 0.53); // Gray (~0x88)
+        cr.rectangle(0.0, 0.0, buf_x as f64, 30.0);
+        cr.fill().unwrap();
+
+        // Draw close button
+        cr.set_source_rgb(1.0, 0.0, 0.0); // Red
+        cr.rectangle((buf_x - 30) as f64, 0.0, 30.0, 30.0);
+        cr.fill().unwrap();
+
+        // Draw content background with gradient
+        let grad = LinearGradient::new(0.0, 30.0, buf_x as f64, buf_y as f64);
+        grad.add_color_stop_rgb(0.0, 0.0, 1.0, 0.0); // Green
+        grad.add_color_stop_rgb(1.0, 0.0, 0.0, 1.0); // Blue
+        cr.set_source(&grad).unwrap();
+        cr.rectangle(0.0, 30.0, buf_x as f64, (buf_y - 30) as f64);
+        cr.fill().unwrap();
     }
-    // Draw content
-    for y in 0..(buf_y - title_h) {
-        for x in 0..buf_x {
-            let a = 0xFF;
-            let r = min(((buf_x - x) * 0xFF) / buf_x, ((buf_y - y) * 0xFF) / buf_y);
-            let g = min((x * 0xFF) / buf_x, ((buf_y - y) * 0xFF) / buf_y);
-            let b = min(((buf_x - x) * 0xFF) / buf_x, (y * 0xFF) / buf_y);
-            buf.write_all(&[b as u8, g as u8, r as u8, a as u8])
-                .unwrap();
-        }
-    }
+
+    surface.flush();
+    let data = surface.data().unwrap();
+
+    let mut buf = BufWriter::new(tmp);
+    buf.write_all(&data).unwrap();
     buf.flush().unwrap();
 }
 
