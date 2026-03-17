@@ -6,7 +6,7 @@ use std::{
     os::fd::AsFd,
 };
 
-use cairo::{Context, Format, ImageSurface, LinearGradient};
+use cairo::{Context, Format, ImageSurface};
 use error::Result;
 use wayland_client::{
     Connection, Dispatch, EventQueue, QueueHandle, WEnum, delegate_noop,
@@ -167,29 +167,64 @@ impl Dispatch<WlRegistry, ()> for State {
 }
 
 fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
+    let width = buf_x as f64;
+    let height = buf_y as f64;
+
     let mut surface = ImageSurface::create(Format::ARgb32, buf_x as i32, buf_y as i32).unwrap();
     // This block causes the Cairo context to drop it's mutable surface reference at the end of it.
     // This is needed because in order to write the surface data into the `tmp` file, exclusive
     // access to the surface data is needed.
     {
         let cr = Context::new(&surface).unwrap();
-
-        // Draw title bar
-        cr.set_source_rgb(0.53, 0.53, 0.53); // Gray (~0x88)
-        cr.rectangle(0.0, 0.0, buf_x as f64, 30.0);
+        // 1. Fill background (Open Look Gray)
+        cr.set_source_rgb(0.8, 0.8, 0.8);
+        cr.paint().unwrap();
+        // 2. Draw 3D Bevel Border (Window Frame)
+        let border_w = 4.0;
+        draw_bevel(&cr, 0.0, 0.0, width, height, border_w, false);
+        // 3. Header/Title Bar
+        let header_h = 26.0;
+        // Window Button (Menu) - Top Left (Recessed)
+        let btn_pad = 4.0;
+        let btn_size = header_h - 2.0 * btn_pad;
+        let btn_x = border_w + btn_pad;
+        let btn_y = border_w + btn_pad;
+        draw_bevel(&cr, btn_x, btn_y, btn_size, btn_size, 2.0, true);
+        // Draw the "Menu Mark" (simple recessed line/box look)
+        cr.set_source_rgb(0.0, 0.0, 0.0);
+        cr.rectangle(
+            btn_x + 3.0,
+            btn_y + btn_size / 2.0 - 1.0,
+            btn_size - 6.0,
+            2.0,
+        );
         cr.fill().unwrap();
-
-        // Draw close button
-        cr.set_source_rgb(1.0, 0.0, 0.0); // Red
-        cr.rectangle((buf_x - 30) as f64, 0.0, 30.0, 30.0);
-        cr.fill().unwrap();
-
-        // Draw content background with gradient
-        let grad = LinearGradient::new(0.0, 30.0, buf_x as f64, buf_y as f64);
-        grad.add_color_stop_rgb(0.0, 0.0, 1.0, 0.0); // Green
-        grad.add_color_stop_rgb(1.0, 0.0, 0.0, 1.0); // Blue
-        cr.set_source(&grad).unwrap();
-        cr.rectangle(0.0, 30.0, buf_x as f64, (buf_y - 30) as f64);
+        // Title Text Area (Centered)
+        cr.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Bold);
+        cr.set_font_size(13.0);
+        let title = "Wayland Window";
+        let extents = cr.text_extents(title).unwrap();
+        let text_x = (width - extents.width()) / 2.0;
+        let text_y = border_w + header_h / 2.0 + extents.height() / 2.0 - 2.0;
+        cr.set_source_rgb(0.0, 0.0, 0.0);
+        cr.move_to(text_x, text_y);
+        cr.show_text(title).unwrap();
+        // 4. Content Area
+        // Separator line
+        let line_y = border_w + header_h;
+        cr.set_source_rgb(0.0, 0.0, 0.0);
+        cr.set_line_width(1.0);
+        cr.move_to(border_w, line_y);
+        cr.line_to(width - border_w, line_y);
+        cr.stroke().unwrap();
+        // Draw content background (White)
+        cr.set_source_rgb(1.0, 1.0, 1.0);
+        cr.rectangle(
+            border_w,
+            line_y + 1.0,
+            width - 2.0 * border_w,
+            height - line_y - 1.0 - border_w,
+        );
         cr.fill().unwrap();
     }
 
@@ -199,6 +234,51 @@ fn draw(tmp: &mut File, (buf_x, buf_y): (u32, u32)) {
     let mut buf = BufWriter::new(tmp);
     buf.write_all(&data).unwrap();
     buf.flush().unwrap();
+}
+
+/// Helper to draw a 3D bevel box
+fn draw_bevel(cr: &Context, x: f64, y: f64, w: f64, h: f64, bw: f64, sunk: bool) {
+    let light = (1.0, 1.0, 1.0);
+    let shadow = (0.4, 0.4, 0.4);
+
+    let (c_top_left, c_bot_right) = if sunk {
+        (shadow, light)
+    } else {
+        (light, shadow)
+    };
+
+    // Top & Left
+    cr.set_source_rgb(c_top_left.0, c_top_left.1, c_top_left.2);
+    // Top trapezoid
+    cr.move_to(x, y);
+    cr.line_to(x + w, y);
+    cr.line_to(x + w - bw, y + bw);
+    cr.line_to(x + bw, y + bw);
+    cr.close_path();
+    cr.fill().unwrap();
+    // Left trapezoid
+    cr.move_to(x, y);
+    cr.line_to(x + bw, y + bw);
+    cr.line_to(x + bw, y + h - bw);
+    cr.line_to(x, y + h);
+    cr.close_path();
+    cr.fill().unwrap();
+    // Bottom & Right
+    cr.set_source_rgb(c_bot_right.0, c_bot_right.1, c_bot_right.2);
+    // Bottom trapezoid
+    cr.move_to(x, y + h);
+    cr.line_to(x + w, y + h);
+    cr.line_to(x + w - bw, y + h - bw);
+    cr.line_to(x + bw, y + h - bw);
+    cr.close_path();
+    cr.fill().unwrap();
+    // Right trapezoid
+    cr.move_to(x + w, y);
+    cr.line_to(x + w, y + h);
+    cr.line_to(x + w - bw, y + h - bw);
+    cr.line_to(x + w - bw, y + bw);
+    cr.close_path();
+    cr.fill().unwrap();
 }
 
 impl Dispatch<XdgSurface, ()> for State {
