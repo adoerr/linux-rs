@@ -6,5 +6,5 @@ edition = "2024"
 [dependencies]
 libc = { workspace = true }
 wl-nl80211 = { workspace = true }
-futures = "0.3.31"
-tokio = "1.49.0"
+futures = "0.3.32"
+tokio = "1.51.0"
