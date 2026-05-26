@@ -14,12 +14,12 @@ elf = { version = "0.8.0" }
 env_logger = { version = "0.11.10" }
 etherparse = { version = "0.20.1" }
 libc = { version = "0.2.183" }
-log = { version = "0.4.29" }
+log = { version = "0.4.30" }
 mio = { version = "1.2.0" }
-nix = { version = "0.31.2" }
+nix = { version = "0.31.3" }
 parking_lot = { version = "0.12.5" }
 serde = { version = "1.0.228" }
-serde_json = { version = "1.0.149" }
+serde_json = { version = "1.0.150" }
 smithay-client-toolkit = { version = "0.20.0" }
 socket2 = { version = "0.6.3" }
 tempfile = { version = "3.27.0" }
